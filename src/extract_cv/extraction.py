@@ -2,8 +2,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.document_loaders import TextLoader
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
-from candidate_profile import CandidateProfile
-import os
+from extract_cv.candidate_profile import CandidateProfile
 
 load_dotenv()
 
@@ -31,3 +30,5 @@ def extract_cv_str_data(cv_text: str):
     chain = prompt | llm_with_structed_output
 
     return chain.invoke({"cv_text": cv_text})
+
+# Có thể có rủi ro sập tiến trình nạp CV hàng loạt

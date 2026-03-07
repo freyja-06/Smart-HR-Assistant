@@ -17,7 +17,7 @@ class Experience(BaseModel):
     description: str
 
 class Level(str, Enum):
-    BEGINNNER = "Beginner"
+    BEGINNER = "Beginner"
     INTERMEDIATE = "Intermediate"
     ADVANCED = "Advanced"
     EXPERT = "Expert"
