@@ -1,8 +1,8 @@
 from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from langchain_community.vectorstores import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
 from langchain_core.vectorstores import VectorStoreRetriever
 from extract_cv.RAG.convert_pydantic_to_langDocs import get_cv_Docs, get_policies_Docs
 import hashlib
@@ -13,8 +13,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 # 🔹 Khởi tạo embedding 1 lần
-EMBEDDING = GoogleGenerativeAIEmbeddings(
-    model="gemini-embedding-001"
+EMBEDDING = OllamaEmbeddings(
+    model="nomic-embed-text"
 )
 
 # 🔹 Path lưu vector DB
@@ -88,10 +88,6 @@ def load_policies_data(
     docs = get_policies_Docs(directory_path)
     # Truyền tên Collection là "Policies"
     return data_preparation(docs, collection_name="Policies", chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-
-
-
-
 
 
 

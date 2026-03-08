@@ -19,7 +19,7 @@ def main():
     print("="*50)
     
     try:
-        print("\n[1/2] Đang xử lý thư mục chứa CVs (Trích xuất thông tin qua Gemini và lưu trữ)...")
+        print("\n[1/2] Đang xử lý thư mục chứa CVs (Trích xuất thông tin và lưu trữ)...")
         # Quá trình này sẽ mất thời gian vì phải đọc PDF và gọi API
         cv_store = load_cv_data()
         print("✅ Hoàn tất nạp dữ liệu CVs vào collection 'CVs'.")
