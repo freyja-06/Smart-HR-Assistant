@@ -1,6 +1,6 @@
 from langchain_community.document_loaders import PyPDFLoader 
 from extract_cv.candidate_profile import CandidateProfile 
-from extract_cv.extraction import extract_cv_str_data
+from extract_cv.extract_to_pydantic_model import extract_cv_str_data
 from typing import List
 import glob
 import os
@@ -11,7 +11,7 @@ def load_pdf(file_path: str) -> str:
     # Concatenate all contents
     full_text = "\n".join([page.page_content for page in pages])
     return full_text
-    
+
 
 def batch_process_cvs(directory_path: str):
     """

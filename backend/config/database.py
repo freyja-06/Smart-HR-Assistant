@@ -7,13 +7,11 @@ from extract_cv.RAG.rag_backend import CHROMA_DIR
 load_dotenv()
 
 # 1. Khởi tạo embedding giống hệt như bên rag_backend.py
-# Hàm này không tốn phí, nó chỉ khai báo công cụ để chuyển text thành vector
 EMBEDDING = OllamaEmbeddings(
     model="nomic-embed-text"
 )
 
 # 3. KẾT NỐI VÀO DATABASE ĐÃ TỒN TẠI
-# Tuyệt đối KHÔNG gọi hàm load_cv_data() hay quét PDF ở đây nữa
 cv_store = Chroma(
     collection_name="CVs", 
     persist_directory=str(CHROMA_DIR),
