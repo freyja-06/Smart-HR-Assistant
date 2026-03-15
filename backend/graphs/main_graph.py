@@ -391,4 +391,4 @@ result = app.invoke(user_input, config=config)
 print(result["final_answer"])
 
 # run: python -m backend.graphs.main_graph
-# Tìm cho tôi 2 CV Java và gửi email phỏng vấn cho h
+# Tìm cho tôi 2 CV Java và gửi email phỏng vấn cho họ
