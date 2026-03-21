@@ -1,6 +1,6 @@
 from typing import List, Callable
 from langchain_core.tools import tool
-from backend.config.database import cv_store, policies_store
+from backend.config.database import cv_store, company_docs_store
 from backend.extract_cv.RAG.rag_backend import get_retriever
 
 @tool
@@ -17,7 +17,7 @@ def send_retriever(
 
     Args:
         query: search query
-        db_type: "cv" or "policy"
+        db_type: "cv" or "company_documents"
         k: number of documents returned
         fetch_k: number of candidate documents
         lambda_mult: diversity parameter for MMR
@@ -27,10 +27,10 @@ def send_retriever(
     # chọn database
     if db_type.lower() == "cv":
         vectorstore = cv_store
-    elif db_type.lower() == "policy":
-        vectorstore = policies_store
+    elif db_type.lower() == "company_documents":
+        vectorstore = company_docs_store
     else:
-        return "db_type phải là 'cv' hoặc 'policy'"
+        return "db_type phải là 'cv' hoặc 'company_documents'"
 
     try:
         retriever = get_retriever(

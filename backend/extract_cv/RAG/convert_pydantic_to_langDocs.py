@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
 from extract_cv.candidate_profile import CandidateProfile
-from extract_cv.extract_pdf import batch_process_cvs, batch_process_policies
+from extract_cv.extract_pdf import batch_process_cvs, batch_process_company_docs
 from typing import List
 
 
@@ -58,8 +58,7 @@ def profile_to_document(profile: CandidateProfile) -> Document:
         "address": profile.address if profile.address else "",
         "skills": skill_names,  # List[str] -> Dễ dàng filter: skills contains "Python"
         "languages": langs,
-        # Bạn có thể tính toán số năm kinh nghiệm ở ngoài và truyền vào nếu muốn
-        # "total_years_exp": calculated_years 
+        "file_name": profile.cv_file_name
     }
 
     return Document(
@@ -71,8 +70,9 @@ def get_cv_Docs(directory_path: str):
     profiles: List[CandidateProfile] = batch_process_cvs(directory_path)
     return [profile_to_document(i) for i in profiles]
 
-def get_policies_Docs(directory_path: str):
-    policies_texts = batch_process_policies(directory_path)
-    return [Document(page_content=text) for text in policies_texts]
+def get_company_Docs(directory_path: str):
+    company_texts, file_paths = batch_process_company_docs(directory_path)
+    company_docs = [Document(page_content=text) for text in company_texts]
+    return [Document(page_content=company_docs[i].page_content, metadata = {"file_path": file_paths[i]}) for i in range(len(company_docs))]
 
 

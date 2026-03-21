@@ -40,4 +40,6 @@ class CandidateProfile(BaseModel):
 
     languages: List[str] | None
 
+    cv_file_name: str = Field(description = "Tên file cv của ứng viên, chỉ cần trả về định dạng <tên file>.pdf, ví dụ 'abc.pdf' ")
+
 
