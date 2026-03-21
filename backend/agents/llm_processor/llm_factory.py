@@ -4,6 +4,7 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 from ollama_cross_encoder import OllamaCrossEncoder
 from dotenv import load_dotenv
 import json
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -165,13 +166,18 @@ class LLMManager:
     """Quản lý LLM và cấu hình Fallback."""
     
     @staticmethod
-    def get_llm_with_fallbacks(**kwargs):
+    def get_llm_with_fallbacks(pydantic_schema = None, **kwargs):
+
+        """
+        Chú ý: Không hỗ trợ Cross Encoder LLm
+        """
+
         primary_llm = ModelFactory.create(
-            model_type="llm", 
-            provider="ollama", 
-            model_name="qwen2.5", 
-            **kwargs
-        )
+                model_type="llm", 
+                provider="ollama", 
+                model_name="qwen2.5", 
+                **kwargs
+            )
 
         fallback_1 = ModelFactory.create(
             model_type="llm", 
@@ -186,6 +192,11 @@ class LLMManager:
             model_name="gemini-2.5-flash", 
             **kwargs
         )
+
+        if pydantic_schema is not None:
+            primary_llm = primary_llm.with_structured_output(pydantic_schema)
+            fallback_1 = fallback_1.with_structured_output(pydantic_schema)
+            fallback_2 = fallback_2.with_structured_output(pydantic_schema)
 
         return primary_llm.with_fallbacks([fallback_1, fallback_2])
     

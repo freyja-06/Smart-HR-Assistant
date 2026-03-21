@@ -6,6 +6,71 @@ from backend.config.database import *
 from rank_bm25 import BM25Okapi
 import backend.constant_variables as const
 
+def build_history_store(
+    docs: List,
+    embedding_model,
+    max_docs: int = 100
+):
+    """
+    Xây dựng history store từ List[Document]
+    """
+
+    # 1. Giới hạn số lượng docs
+    docs = docs[:max_docs]
+
+    # 2. Tạo corpus cho BM25
+    corpus = [doc.page_content for doc in docs]
+    tokenized_corpus = [text.split() for text in corpus]
+
+    bm25 = BM25Okapi(tokenized_corpus)
+
+    # 3. Embed docs
+    embeddings = embedding_model.embed_documents(corpus)
+
+    # 4. Lưu lại
+    history_store = {
+        "docs": docs,
+        "embeddings": embeddings,
+        "bm25": bm25,
+        "corpus": corpus
+    }
+
+    return history_store
+
+def update_history_store(
+    history_store,
+    new_docs: List,
+    embedding_model,
+    max_docs: int = 100
+):
+    """
+    Update history store với docs mới
+    """
+
+    # 1. Merge docs
+    all_docs = history_store["docs"] + new_docs
+
+    # 2. Remove duplicate (quan trọng!)
+    seen = set()
+    unique_docs = []
+
+    for doc in all_docs:
+        content = doc.page_content
+        if content not in seen:
+            seen.add(content)
+            unique_docs.append(doc)
+
+    # 3. Giới hạn size (sliding window)
+    unique_docs = unique_docs[-max_docs:]
+
+    # 4. Rebuild store
+    return build_history_store(
+        docs=unique_docs,
+        embedding_model=embedding_model,
+        max_docs=max_docs
+    )
+
+
 def fusion_retrieval(
     vectorstore,
     all_docs,
@@ -162,69 +227,6 @@ def adaptive_rerank(
 
         return reranked_head + tail
 
-def build_history_store(
-    docs: List,
-    embedding_model,
-    max_docs: int = 100
-):
-    """
-    Xây dựng history store từ List[Document]
-    """
-
-    # 1. Giới hạn số lượng docs
-    docs = docs[:max_docs]
-
-    # 2. Tạo corpus cho BM25
-    corpus = [doc.page_content for doc in docs]
-    tokenized_corpus = [text.split() for text in corpus]
-
-    bm25 = BM25Okapi(tokenized_corpus)
-
-    # 3. Embed docs
-    embeddings = embedding_model.embed_documents(corpus)
-
-    # 4. Lưu lại
-    history_store = {
-        "docs": docs,
-        "embeddings": embeddings,
-        "bm25": bm25,
-        "corpus": corpus
-    }
-
-    return history_store
-
-def update_history_store(
-    history_store,
-    new_docs: List,
-    embedding_model,
-    max_docs: int = 100
-):
-    """
-    Update history store với docs mới
-    """
-
-    # 1. Merge docs
-    all_docs = history_store["docs"] + new_docs
-
-    # 2. Remove duplicate (quan trọng!)
-    seen = set()
-    unique_docs = []
-
-    for doc in all_docs:
-        content = doc.page_content
-        if content not in seen:
-            seen.add(content)
-            unique_docs.append(doc)
-
-    # 3. Giới hạn size (sliding window)
-    unique_docs = unique_docs[-max_docs:]
-
-    # 4. Rebuild store
-    return build_history_store(
-        docs=unique_docs,
-        embedding_model=embedding_model,
-        max_docs=max_docs
-    )
 
 def company_docs_retrieve(query: str, k: int = 5, alpha: float = 0.5, use_compressor: bool = True):
     """

@@ -1,10 +1,11 @@
-from langchain_community.document_loaders import PyPDFLoader 
+from langchain_community.document_loaders import PyPDFLoader
 from backend.extract_cv.candidate_profile import CandidateProfile 
 from backend.extract_cv.extract_to_pydantic_model import extract_cv_str_data
 from typing import List
 import glob
 import os
 import logging
+
 
 logger = logging.getLogger(__name__)
 
