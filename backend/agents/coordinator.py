@@ -136,132 +136,86 @@ def format_docs(docs: List[Document]) -> str:
 
 @chain
 def get_final_prompt(state: dict) -> str:
-    user_input = state.get("user_input")
+    user_input = state.get("user_input", "")
 
-    documents: List[Document] = state.get("documents") or []
-    filtered_documents: List[Document] = state.get("filtered_documents") or []
+    # Lấy đúng tên Key đã định nghĩa trong GraphState
+    cv_docs = state.get("cv_documents") or []
+    company_docs = state.get("company_documents") or []
+    all_raw_docs = cv_docs + company_docs
+    
+    # Lấy context đã được nén
+    company_compressed_context = state.get("company_compressed_context")
 
     email_draft = state.get("email_draft")
     email_sent = state.get("email_sent")
-
     interview_brief = state.get("interview_brief")
     interview_pdf_path = state.get("interview_pdf_path")
-
-    module_outputs: Dict[str, Any] = state.get("module_outputs") or {}
-
+    module_outputs = state.get("module_outputs") or {}
     completed_tasks = state.get("completed_tasks") or []
     failed_tasks = state.get("failed_tasks") or []
 
     context_blocks = []
 
     # =========================================================
-    # 1️⃣ USER QUERY
+    # 1. USER QUESTION & EXECUTION SUMMARY
     # =========================================================
-
+    context_blocks.append(f"USER QUESTION:\n{user_input}")
     context_blocks.append(
-        f"USER QUESTION:\n{user_input}"
+        f"EXECUTION SUMMARY\nCompleted tasks: {completed_tasks}\nFailed tasks: {failed_tasks}"
     )
 
     # =========================================================
-    # 2️⃣ EXECUTION SUMMARY
+    # 2. KNOWLEDGE CONTEXT (Fix Logic)
     # =========================================================
+    # Ưu tiên ngữ cảnh đã nén sạch sẽ, nếu lỗi không có nén thì lùi về dùng format_docs thô
+    if cv_docs:
+        cv_text = format_docs(cv_docs)
+        context_blocks.append(f"CANDIDATE CVs (Raw Documents)\n{cv_text}")
 
-    context_blocks.append(
-        f"""
-EXECUTION SUMMARY
-
-Completed tasks: {completed_tasks}
-Failed tasks: {failed_tasks}
-"""
-    )
-
-    # =========================================================
-    # 3️⃣ KNOWLEDGE CONTEXT
-    # =========================================================
-
-    if filtered_documents:
-        docs_text = format_docs(filtered_documents)
-        context_blocks.append(
-            f"""
-RELEVANT KNOWLEDGE (filtered documents)
-
-{docs_text}
-"""
-        )
-
-    elif documents:
-        docs_text = format_docs(documents)
-        context_blocks.append(
-            f"""
-RETRIEVED KNOWLEDGE
-
-{docs_text}
-"""
-        )
+    # 2.2 Xử lý riêng Company Documents (Ưu tiên nén, fallback thô)
+    if company_compressed_context and company_compressed_context != "Không tìm thấy ngữ cảnh liên quan trong tài liệu.":
+        context_blocks.append(f"COMPANY POLICY/DOCS (Compressed Context)\n{company_compressed_context}")
+    elif company_docs:
+        company_text = format_docs(company_docs)
+        context_blocks.append(f"COMPANY POLICY/DOCS (Raw Documents)\n{company_text}")
 
     # =========================================================
-    # 4️⃣ MODULE OUTPUTS
+    # 3. MODULE OUTPUTS
     # =========================================================
-
     if email_draft:
-        context_blocks.append(
-            f"""
-EMAIL DRAFT GENERATED
-
-{email_draft}
-"""
-        )
+        context_blocks.append(f"EMAIL DRAFT GENERATED\n{email_draft}")
 
     if email_sent is True:
-        context_blocks.append(
-            "EMAIL STATUS: The email was successfully sent."
-        )
+        context_blocks.append("EMAIL STATUS: The email was successfully sent.")
 
     if interview_brief:
-        context_blocks.append(
-            f"""
-INTERVIEW BRIEF GENERATED
-
-{interview_brief[:2000]}
-"""
-        )
+        context_blocks.append(f"INTERVIEW BRIEF GENERATED\n{interview_brief[:2000]}")
 
     if interview_pdf_path:
-        context_blocks.append(
-            f"INTERVIEW PDF PATH: {interview_pdf_path}"
-        )
+        context_blocks.append(f"INTERVIEW PDF PATH: {interview_pdf_path}")
 
     if module_outputs:
-        context_blocks.append(
-            f"""
-OTHER MODULE OUTPUTS
-
-{module_outputs}
-"""
-        )
+        context_blocks.append(f"OTHER MODULE OUTPUTS\n{module_outputs}")
 
     # =========================================================
-    # 5️⃣ FINAL INSTRUCTION FOR LLM
+    # 4. FINAL INSTRUCTION
     # =========================================================
-
     context_blocks.append(
         """
-Using the information above, generate the final response to the user.
+        Using the information above, generate the final response to the user.
 
-Guidelines:
-- Answer the user question directly.
-- Use the provided knowledge when relevant.
-- Summarize generated documents instead of repeating them fully.
-- If an email draft exists, inform the user.
-- If an interview brief exists, summarize the key points.
-- If tasks failed, politely inform the user.
+        Guidelines:
+        - Answer the user question directly.
+        - Use the provided knowledge when relevant.
+        - If an email draft exists, inform the user.
+        - If an interview brief exists, summarize the key points.
+        - If tasks failed, politely inform the user.
 
-Write a clear, professional HR assistant response.
-"""
+        Write a clear, professional HR assistant response.
+        """
     )
 
     final_prompt = "\n\n".join(context_blocks)
-
     return {"final_prompt": final_prompt}
 
 

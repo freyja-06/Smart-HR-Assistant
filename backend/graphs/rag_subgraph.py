@@ -3,6 +3,8 @@ from backend.agents.rag_agents import sub_query_agent
 from backend.agents.coordinator import Task
 from langgraph.graph import StateGraph, START, END
 from backend.extract_cv.RAG.rag_backend import general_retrieve
+from backend.agents.rag_agents import context_compressor_agent
+from backend.agents.llm_processor.llm import llm
 from typing import Dict
 import asyncio
 
@@ -87,10 +89,26 @@ async def parallel_retrieve_node(state: GraphState):
             }
         }
     
+async def context_compressor_node(state: GraphState):
+    query = state.get("user_input", "")
+    
+    # Gộp tất cả tài liệu truy xuất được để nén ngữ cảnh
+    all_docs = state.get("company_documents") or []
+    
+    if not all_docs:
+        return {"company_compressed_context": ""}
+    compressed_ctx = await context_compressor_agent(
+        query=query, 
+        docs=all_docs
+    )
+    
+    return {"company_compressed_context": compressed_ctx}
 
 rag_workflow.add_node("optimize_query_node", optimize_query_node)
 rag_workflow.add_node("parallel_retrieve_node", parallel_retrieve_node)
+rag_workflow.add_node("context_compressor_node", context_compressor_node)
 
 rag_workflow.add_edge(START, "optimize_query_node")
 rag_workflow.add_edge("optimize_query_node", "parallel_retrieve_node")
-rag_workflow.add_edge("parallel_retrieve_node", END)
+rag_workflow.add_edge("parallel_retrieve_node", "context_compressor_node")
+rag_workflow.add_edge("context_compressor_node", END)

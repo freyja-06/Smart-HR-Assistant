@@ -128,6 +128,10 @@ class GraphState(TypedDict):
         "Company documents retrieved."
     ]
 
+    company_compressed_context: Annotated[
+        Optional[str],
+        "Ngữ cảnh đã được nén bằng Map-Reduce từ các tài liệu truy xuất được. Chỉ sử dụng cho company documents"
+    ]
 
     # =========================================================
     # MODULE OUTPUTS

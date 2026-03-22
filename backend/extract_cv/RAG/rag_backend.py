@@ -299,20 +299,6 @@ def company_docs_retrieve(
 
     selected_docs = [top_docs[i] for i in selected_idx]
 
-    # 🔥 5. Context Compression (NEW) (chuẩn bị được sửa lại)
-    if use_compressor:
-        cross_encoder = ModelFactory.create(
-            model_type="cross_encoder",
-            provider="ollama",
-            model_name="sam860/qwen3-reranker:0.6b-Q8_0"
-        )
-
-        selected_docs = cross_encoder.rerank(
-            query=query,
-            docs=selected_docs,
-            top_k=dynamic_k
-        )
-
     return selected_docs
 
 def retrieve_from_history(history_store, query, embedding_model, top_n: Optional[int] = None):
