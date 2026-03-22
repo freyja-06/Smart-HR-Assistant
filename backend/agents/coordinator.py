@@ -53,7 +53,12 @@ class Plan(BaseModel):
         """
     )
 
-manager_llm = llm.with_structured_output(Plan)
+manager_llm = LLMManager.get_llm_with_fallbacks(
+    pydantic_schema=Plan, # Thêm tham số này
+    temperature=0,
+    max_tokens=2048,
+    num_ctx=8192
+)
 
 manager_instruction = """
 

@@ -1,8 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_community.document_loaders import TextLoader
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
-from extract_cv.candidate_profile import CandidateProfile
+from backend.extract_cv.candidate_profile import CandidateProfile
 
 load_dotenv()
 

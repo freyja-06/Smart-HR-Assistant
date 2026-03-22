@@ -120,10 +120,25 @@ def rag_search_node(state: GraphState):
 
 
 def write_email_node(state: GraphState):
-    pass # sẽ viết sau
+    task_id = state["current_task_id"]
+    
+    return {
+        "completed_tasks": state.get("completed_tasks", []) + [task_id],
+        "module_outputs": {
+            "info": "Email module chưa được triển khai"
+        }
+    }
+
 
 def generate_interview_brief_node(state: GraphState):
-    pass # sẽ viết sau
+    task_id = state["current_task_id"]
+    
+    return {
+        "completed_tasks": state.get("completed_tasks", []) + [task_id],
+        "module_outputs": {
+            "info": "Interview brief module chưa được triển khai"
+        }
+    }
 
 #----------------------------------------------------
 

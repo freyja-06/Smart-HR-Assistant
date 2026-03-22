@@ -108,11 +108,17 @@ sub_query_prompt = ChatPromptTemplate.from_messages([
     ("system", sub_query_instruction),
     ("human", "{query}")
 ])
-structured_llm = llm.with_structured_output(ListSubQuery)
+structured_llm = LLMManager.get_llm_with_fallbacks(
+    pydantic_schema=ListSubQuery,
+    temperature=0,
+    max_tokens=2048,
+    num_ctx=8192
+)
 # Tối ưu lại việc ép kiểu cho llm
 
 sub_query_agent: RunnableSequence = (
-    optimize_query_agent
+     (lambda raw_input: {"user_query": raw_input})
+    | optimize_query_agent
     | (lambda optimized_query: {"query": optimized_query})
     | sub_query_prompt
     | structured_llm

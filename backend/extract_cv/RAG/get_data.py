@@ -1,10 +1,11 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from extract_cv.RAG.convert_pydantic_to_langDocs import get_cv_Docs, get_company_Docs
+from backend.extract_cv.RAG.convert_pydantic_to_langDocs import get_cv_Docs, get_company_Docs
 import hashlib
 from dotenv import load_dotenv
 from backend.extract_cv.RAG.bm25_module import create_bm25_index, save_bm25
 import backend.constant_variables as const
+from backend.agents.llm_processor.llm_factory import ModelFactory
 
 load_dotenv()
 
@@ -14,7 +15,11 @@ BM25_CV_PATH = const.BM25_CV_PATH
 BM25_COMPANY_PATH = const.BM25_COMPANY_PATH
 
 # 🔹 Khởi tạo embedding 1 lần
-EMBEDDING = const.EMBEDDINGS_LLM
+EMBEDDING = ModelFactory.create(
+    model_type="embedding",
+    provider="ollama",
+    model_name="nomic-embed-text",
+)
 
 # 🔹 Path lưu vector DB
 CHROMA_DIR = const.CHROMA_DIR
@@ -76,11 +81,19 @@ def load_cv_data(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
 ):
-    print("Đường dẫn: " , end = "")
+    print("Đường dẫn: ", end="")
     print(CV_PATH)
+
     docs = cv_docs
-    # Truyền tên Collection là "CVs"
-    return data_preparation(docs, collection_name="CVs", chunk_size=chunk_size, chunk_overlap=chunk_overlap), docs
+
+    vectorstore, doc_embeddings = data_preparation(
+        docs,
+        collection_name="CVs",
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+
+    return vectorstore, doc_embeddings, docs
 
 
 def load_company_docs_data(
@@ -88,8 +101,15 @@ def load_company_docs_data(
     chunk_overlap: int = 200,
 ):
     docs = company_docs
-    # Truyền tên Collection là "company_docs"
-    return data_preparation(docs, collection_name="company_docs", chunk_size=chunk_size, chunk_overlap=chunk_overlap), docs
+
+    vectorstore, doc_embeddings = data_preparation(
+        docs,
+        collection_name="company_docs",
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+
+    return vectorstore, doc_embeddings, docs
 
 
 def load_cv_bm25_index():

@@ -261,7 +261,7 @@ def company_docs_retrieve(
     dynamic_k = len(top_docs)
 
     # 2. Embed query
-    query_vec = company_embeddings.embed_query(query)
+    query_vec = EMBEDDING.embed_query(query)
 
     # 3. Tính similarity query với docs
     sim_query_doc = cosine_similarity([query_vec], top_embeddings)[0]

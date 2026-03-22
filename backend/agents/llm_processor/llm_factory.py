@@ -1,7 +1,7 @@
 from typing import Any, Dict, Tuple
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_ollama import ChatOllama, OllamaEmbeddings
-from ollama_cross_encoder import OllamaCrossEncoder
+from backend.agents.llm_processor.ollama_cross_encoder import OllamaCrossEncoder
 import json
 
 
@@ -213,7 +213,3 @@ class LLMManager:
 
         return primary_llm.with_fallbacks([fallback_1, fallback_2])
     
-
-"""
-
-"""

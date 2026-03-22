@@ -1,7 +1,7 @@
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
 import backend.constant_variables as const
-from extract_cv.RAG.bm25_module import load_bm25
+from backend.extract_cv.RAG.bm25_module import load_bm25
 from backend.config.loading_and_caching import load_or_create
 import numpy as np
 from backend.agents.llm_processor.llm_factory import ModelFactory
@@ -15,7 +15,11 @@ COMPANY_EMBEDDING_SAVE_DIR = const.COMPANY_EMBEDDING_SAVE_DIR
 
 load_dotenv()
 
-EMBEDDING = ModelFactory()
+EMBEDDING = ModelFactory.create(
+       model_type="embedding",
+       provider="ollama",
+       model_name="nomic-embed-text",
+    )
 
 # KẾT NỐI VÀO DATABASE ĐÃ TỒN TẠI
 cv_store = Chroma(
@@ -48,5 +52,6 @@ __all__ = [
     "cv_bm25",
     "company_docs_bm25",
     "cv_embeddings",
-    "company_embeddings"
+    "company_embeddings",
+    "EMBEDDING"
 ]

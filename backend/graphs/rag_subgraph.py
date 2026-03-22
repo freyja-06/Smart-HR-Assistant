@@ -99,7 +99,7 @@ async def context_compressor_node(state: GraphState):
         return {"company_compressed_context": ""}
     compressed_ctx = await context_compressor_agent(
         query=query, 
-        docs=all_docs
+        company_docs=all_docs
     )
     
     return {"company_compressed_context": compressed_ctx}

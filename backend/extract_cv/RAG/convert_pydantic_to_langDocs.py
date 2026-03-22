@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
-from extract_cv.candidate_profile import CandidateProfile
-from extract_cv.extract_pdf import batch_process_cvs, batch_process_company_docs
+from backend.extract_cv.candidate_profile import CandidateProfile
+from backend.extract_cv.extract_pdf import batch_process_cvs, batch_process_company_docs
 from typing import List
 
 

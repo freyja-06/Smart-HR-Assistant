@@ -1,13 +1,13 @@
-from extract_cv.RAG.get_data import load_cv_data, load_company_docs_data, load_cv_bm25_index, load_company_docs_bm25_index
-from loading_and_caching import load_or_create
+from backend.extract_cv.RAG.get_data import load_cv_data, load_company_docs_data, load_cv_bm25_index, load_company_docs_bm25_index
+from backend.config.loading_and_caching import load_or_create
 import numpy as np
 import backend.constant_variables as const
 
 
 LANGDOCS_SAVE_DIR = const.LANGDOCS_SAVE_DIR
 
-CV_EMBEDDING_SAVE_DIR = const.EMBEDDING_SAVE_DIR
-COMPANY_EMBEDDING_SAVE_DIR = const.EMBEDDING_SAVE_DIR 
+CV_EMBEDDING_SAVE_DIR = const.CV_EMBEDDING_SAVE_DIR
+COMPANY_EMBEDDING_SAVE_DIR = const.COMPANY_EMBEDDING_SAVE_DIR 
 
 def main():
     print("="*50)
