@@ -1,10 +1,12 @@
 from sklearn.metrics.pairwise import cosine_similarity
 from backend.agents.llm_processor.llm_factory import ModelFactory
 import numpy as np
-from typing import List
+from typing import List, Optional
 from backend.config.database import *
 from rank_bm25 import BM25Okapi
 import backend.constant_variables as const
+from backend.extract_cv.RAG.choose_k import adaptive_k, compute_base_k
+
 
 def build_history_store(
     docs: List,
@@ -77,10 +79,10 @@ def fusion_retrieval(
     doc_embeddings,
     bm25,
     query: str,
-    k: int = 50,
+    k: int = None,
     alpha: float = 0.5,
-    top_k_vector: int = 50,
-    top_k_bm25: int = 50,
+    top_k_vector: int = 100,
+    top_k_bm25: int = 100,
 ):
     epsilon = 1e-8
 
@@ -102,6 +104,13 @@ def fusion_retrieval(
     # --- BM25 (top-k)
     bm25_scores_full = bm25.get_scores(query.split())
     bm25_top_idx = np.argsort(bm25_scores_full)[::-1][:top_k_bm25]
+
+    if k is None:
+        k = adaptive_k(
+            n_docs=len(all_docs),
+            vector_scores_raw=vector_scores_raw,
+            bm25_scores_full=bm25_scores_full
+        )
 
     # --- Union
     candidate_indices = list(set(vector_indices) | set(bm25_top_idx))
@@ -228,7 +237,11 @@ def adaptive_rerank(
         return reranked_head + tail
 
 
-def company_docs_retrieve(query: str, k: int = 5, alpha: float = 0.5, use_compressor: bool = True):
+def company_docs_retrieve(
+    query: str,
+    alpha: float = 0.5, 
+    use_compressor: bool = True
+):
     """
     Truy vấn thông tin tài liệu của công ty
     """
@@ -240,8 +253,12 @@ def company_docs_retrieve(query: str, k: int = 5, alpha: float = 0.5, use_compre
         doc_embeddings=company_embeddings,
         bm25=company_docs_bm25,
         query=query,
-        alpha=alpha
+        alpha=alpha,
+        k = None
     )
+
+    # Lấy số lượng k tối ưu đã được tính toán bởi adaptive_k
+    dynamic_k = len(top_docs)
 
     # 2. Embed query
     query_vec = company_embeddings.embed_query(query)
@@ -253,7 +270,7 @@ def company_docs_retrieve(query: str, k: int = 5, alpha: float = 0.5, use_compre
     selected_idx = []
     candidate_idx = list(range(len(top_docs)))
 
-    while len(selected_idx) < k and candidate_idx:
+    while len(selected_idx) < dynamic_k and candidate_idx:
         if len(selected_idx) == 0:
             # chọn doc giống query nhất
             idx = candidate_idx[np.argmax(sim_query_doc[candidate_idx])]
@@ -293,14 +310,18 @@ def company_docs_retrieve(query: str, k: int = 5, alpha: float = 0.5, use_compre
         selected_docs = cross_encoder.rerank(
             query=query,
             docs=selected_docs,
-            top_k=k
+            top_k=dynamic_k
         )
 
     return selected_docs
 
-def retrieve_from_history(history_store, query, embedding_model, top_n=30):
+def retrieve_from_history(history_store, query, embedding_model, top_n: Optional[int] = None):
     docs = history_store["docs"]
     embeddings = history_store["embeddings"]
+
+    # Tính dynamic top_n nếu không có
+    if top_n is None:
+        top_n = compute_base_k(len(docs))
 
     # embed query
     query_vec = embedding_model.embed_query(query)
@@ -320,9 +341,9 @@ def retrieve_from_history(history_store, query, embedding_model, top_n=30):
 def cv_retrieve(
     subquery: str,
     db_type: str,
-    k: int,
     alpha: float,
-    history_store  # thêm history vào đây
+    history_store,
+    k: Optional[int] = None
 ):
     """
     CV retrieval pipeline:
@@ -336,7 +357,6 @@ def cv_retrieve(
     # 1. LOCAL DATABASE
     # =========================
     if db_type == "CV_DATABASE":
-
         # Step 1: Fusion retrieval
         top_docs, top_embs = fusion_retrieval(
             vectorstore=cv_store,
@@ -344,16 +364,23 @@ def cv_retrieve(
             doc_embeddings=cv_embeddings,
             bm25=cv_bm25,
             query=subquery,
-            alpha=alpha
+            alpha=alpha,
+            k = k
         )
+
+        actual_k = len(top_docs) # Số lượng doc thật sự sau khi retrieve (tĩnh hoặc động)
 
         # Step 2: Rerank (Cross Encoder)
         reranked_docs = adaptive_rerank(
             query=subquery,
             top_docs=top_docs,
             top_embs=top_embs,
-            model=const.CROSS_ENCODER_LLM,
-            k=k
+            model= ModelFactory.create(
+                model_type="cross_encoder",
+                provider="ollama",
+                model_name="sam860/qwen3-reranker:0.6b-Q8_0",
+            ),
+            k = actual_k
         )
 
 
@@ -374,8 +401,9 @@ def cv_retrieve(
                 provider="ollama",
                 model_name="nomic-embed-text",
             ),
-            top_n=30
+            top_n=k
         )
+        actual_k = len(top_docs)
 
         # Step 2: Rerank
         reranked_docs = adaptive_rerank(
@@ -386,8 +414,8 @@ def cv_retrieve(
                 model_type="cross_encoder",
                 provider="ollama",
                 model_name="sam860/qwen3-reranker:0.6b-Q8_0",
-            ) ,
-            k=k
+            ),
+            k=actual_k
         )
     # =========================
     # 3. INVALID TYPE
@@ -398,8 +426,8 @@ def cv_retrieve(
     return reranked_docs
     
 
-def general_retrieve(subquery: str, db_type:str, k: int, alpha: float, history_store):
+def general_retrieve(subquery: str, db_type:str, alpha: float, history_store, k: Optional[int] = None):
     if db_type == "CV_DATABASE" or db_type == "HISTORY_CV_DATABASE":
-        return cv_retrieve(subquery=subquery, db_type=db_type, k = k, history_store = history_store)
+        return cv_retrieve(subquery=subquery, db_type=db_type, k=k, alpha=alpha, history_store=history_store)
     else:
-        return company_docs_retrieve(subquery, k, alpha)
+        return company_docs_retrieve(query=subquery, alpha=alpha)

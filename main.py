@@ -1,5 +1,8 @@
 from backend.graphs.main_graph import run
 from backend.state.graph_state import GraphState
+from dotenv import load_dotenv
+load_dotenv()
+
 
 state: GraphState = {}
 config = {"configurable": {"thread_id": "1"}}

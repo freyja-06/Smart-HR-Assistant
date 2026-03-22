@@ -52,7 +52,7 @@ class SubQuery(BaseModel):
     )
 
     k: int = Field(
-        default=10,
+        default=None,
         ge=1,
         le=100,
         description="""
@@ -64,6 +64,10 @@ class SubQuery(BaseModel):
         Increase k when the query is broad or ambiguous.
         k should typically be 2 - 3x larger than the final number of desired results
         to ensure sufficient recall before reranking.
+
+        ONLY provide this number if the user EXPLICITLY asks for a specific quantity (e.g., "find me 5 CVs", "top 3 candidates").
+        If the user does NOT specify a quantity, DO NOT provide this value (leave it null/None).
+
         """
     )
 
@@ -98,6 +102,7 @@ sub_query_prompt = ChatPromptTemplate.from_messages([
     ("human", "{query}")
 ])
 structured_llm = llm.with_structured_output(ListSubQuery)
+# Tối ưu lại việc ép kiểu cho llm
 
 sub_query_agent: RunnableSequence = (
     optimize_query_agent
@@ -107,3 +112,29 @@ sub_query_agent: RunnableSequence = (
 )
 
 
+context_compressor_instruction = """
+
+    Bạn là một Context Compressor trong hệ thống hỏi đáp tài liệu nội bộ.
+
+    Mục tiêu:
+    Tối ưu hóa context để giúp LLM trả lời chính xác nhất.
+
+    Nguyên tắc:
+    1. CHỈ giữ thông tin liên quan trực tiếp đến câu hỏi.
+    2. LOẠI BỎ:
+    - thông tin dư thừa
+    - ví dụ không cần thiết
+    - phần giải thích dài dòng
+    3. GIỮ:
+    - dữ kiện quan trọng
+    - số liệu, tên riêng, quy trình, logic
+    4. KHÔNG:
+    - suy diễn
+    - thêm kiến thức ngoài
+    - thay đổi ý nghĩa
+    5. Nếu tài liệu KHÔNG liên quan → trả về: "IRRELEVANT"
+
+    Định dạng output:
+    - Bullet points (ưu tiên)
+    - Ngắn gọn, rõ ràng
+"""

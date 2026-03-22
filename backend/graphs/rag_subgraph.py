@@ -6,14 +6,14 @@ from backend.extract_cv.RAG.rag_backend import general_retrieve
 from typing import Dict
 import asyncio
 
-async def asyn_general_retrieve(subquery, db_type, k, alpha, history_store):
+async def asyn_general_retrieve(subquery, db_type, alpha, history_store, k=None):
     return await asyncio.to_thread(
         general_retrieve,
-        subquery,
-        db_type,
-        k,
-        alpha,
-        history_store
+        subquery=subquery,
+        db_type=db_type,
+        alpha=alpha,
+        history_store=history_store,
+        k=k
     )
 
 rag_workflow = StateGraph(GraphState)
@@ -46,9 +46,9 @@ async def parallel_retrieve_node(state: GraphState):
             retrieve_tasks[f"{i}. {query.data_source}"] = asyn_general_retrieve(
                 subquery=query.sub_query,
                 db_type=query.data_source,
-                k=query.k,
                 alpha=query.alpha,
-                history_store=history_store
+                history_store=history_store,
+                k=query.k  # Lúc này query.k có thể mang giá trị int hoặc None
             )
 
         # Await trực tiếp gather

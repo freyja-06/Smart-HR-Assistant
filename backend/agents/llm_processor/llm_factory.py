@@ -2,11 +2,7 @@ from typing import Any, Dict, Tuple
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from ollama_cross_encoder import OllamaCrossEncoder
-from dotenv import load_dotenv
 import json
-from pydantic import BaseModel
-
-load_dotenv()
 
 
 class BaseModelBuilder:
@@ -144,6 +140,17 @@ class ModelFactory:
         -------
         ValueError:
             Nếu model_type chưa được đăng ký trong factory
+
+        Gợi ý một số model hợp lý để test
+            1. Normal LLM: 
+                qwen2.5
+
+            2. Embedding model
+                nomic-embed-text
+
+            3. Cross-encoder (reranker)
+                sam860/qwen3-reranker:0.6b-Q8_0
+        
     """
         key = cls._make_key(model_type, provider, model_name, **kwargs)
 
@@ -202,13 +209,5 @@ class LLMManager:
     
 
 """
-Gợi ý một số model hợp lý
-    1. Normal LLM: 
-        qwen2.5
 
-    2. Embedding model
-        nomic-embed-text
-
-    3. Cross-encoder (reranker)
-        dengcao/qwen3-reranker-4b:Q5_K_M
 """

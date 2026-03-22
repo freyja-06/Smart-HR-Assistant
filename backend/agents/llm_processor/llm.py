@@ -5,5 +5,5 @@ load_dotenv()
 
 llm = LLMManager.get_llm_with_fallbacks(
     temperature=0,
-    max_output_tokens=2048
+    max_tokens=2048
 )
