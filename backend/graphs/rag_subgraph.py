@@ -4,9 +4,9 @@ from backend.agents.coordinator import Task
 from langgraph.graph import StateGraph, START, END
 from backend.extract_cv.RAG.rag_backend import general_retrieve
 from backend.agents.rag_agents import context_compressor_agent
-from backend.agents.llm_processor.llm import llm
 from typing import Dict
 import asyncio
+
 
 async def asyn_general_retrieve(subquery, db_type, alpha, history_store, k=None):
     return await asyncio.to_thread(

@@ -28,6 +28,7 @@ class LLMBuilder(BaseModelBuilder):
                 model=model_name,
                 temperature=kwargs.get("temperature", 0),
                 num_predict=kwargs.get("max_tokens", 2048),
+                num_ctx=kwargs.get("num_ctx", 8192), # Thêm thông số num_ctx để mở rộng context window
                 timeout=kwargs.get("timeout", None),
                 max_retries=kwargs.get("max_retries", 2),
                 keep_alive="3m"
@@ -178,6 +179,11 @@ class LLMManager:
         """
         Chú ý: Không hỗ trợ Cross Encoder LLm
         """
+
+        if "temperature" not in kwargs:
+            kwargs["temperature"] = 0
+        if "num_ctx" not in kwargs:
+            kwargs["num_ctx"] = 8192
 
         primary_llm = ModelFactory.create(
                 model_type="llm", 

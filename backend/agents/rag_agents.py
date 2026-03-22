@@ -1,10 +1,16 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableSequence
-from backend.agents.llm_processor.llm import llm
+from backend.agents.llm_processor.llm_factory import LLMManager # Thay đổi import
 from pydantic import BaseModel, Field
 from typing import Literal, List, Optional
 import asyncio
+
+llm = LLMManager.get_llm_with_fallbacks(
+    temperature=0,
+    max_tokens=2048,
+    num_ctx=8192
+)
 
 optimize_query_instruction = """
 You are an AI assistant tasked with reformulating user queries to improve retrieval in a RAG system. 

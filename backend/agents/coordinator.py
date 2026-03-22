@@ -1,10 +1,16 @@
 from langchain_core.prompts import ChatPromptTemplate
-from backend.agents.llm_processor.llm import llm
+from backend.agents.llm_processor.llm_factory import LLMManager
 from pydantic import BaseModel, Field
 from typing import Literal, List, Any, Dict, Optional
 from langchain_core.runnables import RunnableSequence, chain
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
+
+llm = LLMManager.get_llm_with_fallbacks(
+    temperature=0,
+    max_tokens=2048,
+    num_ctx=8192
+)
 
 class Task(BaseModel):
     task_id: int = Field(
