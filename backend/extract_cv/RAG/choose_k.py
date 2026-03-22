@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-
 def compute_base_k(n_docs: int):
 
     """
@@ -64,7 +63,21 @@ def adjust_k_by_vector_scores(base_k, vector_scores_raw):
 def adjust_k_by_bm25(base_k, bm25_scores):
 
     """
+    Hàm điều chỉnh k dựa trên phân phối điểm số của BM25 (đại diện cho keyword matching - tìm kiếm từ khóa).
     
+    Logic chính: Ta xem xét tỷ lệ (ratio) giữa điểm cao nhất (top) và điểm trung bình (mean) của các document.
+    
+        1. Tỷ lệ cao (ratio > 3): 
+            Điều này có nghĩa là có một (hoặc vài) document chứa từ khóa cực kỳ sát với query, 
+            điểm số vượt trội hoàn toàn so với mức trung bình của phần còn lại.
+            => Model bắt đúng "key" rất tốt, document rất "dính". 
+            => Ta có thể tự tin giảm k xuống (nhân với 0.7) để tăng tốc độ xử lý mà không sợ rớt mất context quan trọng.
+            
+        2. Tỷ lệ thấp (ratio < 1.5):
+            Điểm số dàn trải đều đều, đỉnh (top) không cách biệt mấy so với mức trung bình.
+            Điều này thường xảy ra khi câu hỏi chứa các từ vựng phổ biến (stop words) hoặc không khớp chính xác keyword đặc thù nào.
+            => Query này đang bị "mờ" về mặt từ khóa (Fuzzy). 
+            => Ta cần tăng k lên (nhân với 1.3) để "vớt" thêm tài liệu, cho LLM hoặc Cross-Encoder tự đánh giá chéo về sau.
     """
 
     if len(bm25_scores) < 2:
@@ -92,6 +105,19 @@ def adaptive_k(
     k_min: int = 10,
     k_max: int = 100
 ):
+    
+    """
+    Hàm tổng hợp (Orchestrator) để tính toán ra giá trị k động (adaptive k) cuối cùng.
+    Hàm này kết hợp đánh giá độ khó của query trên cả 2 phương diện: ngữ nghĩa (Vector) và từ khóa (BM25).
+    
+    Các bước thực hiện:
+        1. Tính base_k: Số lượng k nền tảng phụ thuộc vào quy mô (size) của cơ sở dữ liệu.
+        2. Filter qua Vector: Lấy base_k đi qua bộ lọc Vector để điều chỉnh dựa trên độ phân tán ngữ nghĩa.
+        3. Filter qua BM25: Lấy base_k đi qua bộ lọc BM25 để điều chỉnh dựa trên độ nổi bật của từ khóa.
+        4. Hybrid Average: Lấy trung bình cộng của k_vec và k_bm25 để hệ thống cân bằng được sức mạnh của cả hai phương pháp (Hybrid Search).
+        5. Clamping: Cuối cùng, dùng hàm max/min để "chốt chặn" giá trị k, đảm bảo nó luôn nằm trong khoảng an toàn đã định [k_min, k_max] để tránh lỗi thiếu hụt hoặc tràn RAM.
+    """
+
     base_k = compute_base_k(n_docs)
 
     k_vec = adjust_k_by_vector_scores(base_k, vector_scores_raw)
