@@ -2,14 +2,15 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 from backend.extract_cv.candidate_profile import CandidateProfile
+from backend.agents.llm_processor.llm_factory import ModelFactory
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model = "gemini-2.5-flash",
-    temperature = 0 # Set the temperature to 0 to ensure maximum extraction accuracy.
-)
-
+llm = ModelFactory.create(
+                model_type="llm", 
+                provider="ollama", 
+                model_name="qwen2.5"
+            )
 llm_with_structed_output = llm.with_structured_output(CandidateProfile)
 
 instruction = """

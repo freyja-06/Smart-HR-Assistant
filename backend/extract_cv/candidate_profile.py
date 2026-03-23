@@ -1,45 +1,26 @@
 from typing import List
 from pydantic import BaseModel, Field
-from enum import Enum
-
-class Education(BaseModel):
-    degree: str
-    major: str
-    institution: str
-    start_year: int | None
-    end_year: int | None
-
-class Experience(BaseModel):
-    job_title: str
-    company: str
-    start_date: str
-    end_date: str | None
-    description: str
-
-class Level(str, Enum):
-    BEGINNER = "Beginner"
-    INTERMEDIATE = "Intermediate"
-    ADVANCED = "Advanced"
-    EXPERT = "Expert"
-
-class Skill(BaseModel):
-    name: str
-    level: Level = Field(description="Beginner | Intermediate | Advanced | Expert")
 
 class CandidateProfile(BaseModel):
     full_name: str
     email: str
-    phone: str | None
-    address: str | None
+    phone: str | None = None
 
-    summary: str
+    summary: str | None = None
 
-    skills: List[Skill]
-    education: List[Education]
-    experience: List[Experience]
+    # đơn giản hóa skill
+    skills: List[str] = Field(default_factory=list)
 
-    languages: List[str] | None
+    # experience flatten
+    experiences: List[str] = Field(
+        default_factory=list,
+        description="Each item: 'Job title at Company (time): description'"
+    )
 
-    cv_file_name: str = Field(description = "Tên file cv của ứng viên, chỉ cần trả về định dạng <tên file>.pdf, ví dụ 'abc.pdf' ")
+    # education đơn giản
+    education: List[str] = Field(
+        default_factory=list,
+        description="Each item: 'Degree - Major - School'"
+    )
 
-
+    cv_file_name: str = Field(description = "Tên file cv của ứng viên, chỉ cần trả về định dạng <tên file>.pdf, ví dụ 'abc.pdf' ") 

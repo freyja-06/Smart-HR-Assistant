@@ -27,15 +27,23 @@ def batch_process_cvs(directory_path: str):
 
     # Find all files .pdf in folder
     pdf_files = glob.glob(os.path.join(directory_path, "*.pdf"))
+    total_files = len(pdf_files)
 
-    for pdf_file in pdf_files:
+    for idx, pdf_file in enumerate(pdf_files, start=1):
         try:
+            print(f"[{idx}/{total_files}] 🔄 Đang load: {pdf_file}")
+
             cv_text = load_pdf(pdf_file)
+
+            print(f"[{idx}/{total_files}] ✅ Load xong: {pdf_file}")
+
             if cv_text:
                 processed_profiles.append(extract_cv_str_data(cv_text))
 
         except Exception as e:
             logger.error(f"Lỗi khi xử lý tệp {pdf_file}: {str(e)}", exc_info=True)
+
+    print(f"🎉 Hoàn tất! Đã xử lý {len(processed_profiles)}/{total_files} file.")
 
     return processed_profiles
 
