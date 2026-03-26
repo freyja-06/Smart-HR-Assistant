@@ -2,16 +2,24 @@
 Ingest Pipeline Orchestrator
 =============================
 Điều phối toàn bộ quy trình nạp dữ liệu:
-  Load PDF → Transform → Save All (ChromaDB + Embeddings + BM25 + LangDocs)
+  Loader.get_docs(path) → Save All (ChromaDB + Embeddings + BM25 + LangDocs)
+
+Sử dụng BaseLoader pattern (OCP):
+  - Thêm nguồn dữ liệu mới → tạo subclass BaseLoader + thêm vào PIPELINE_CONFIGS
+  - Không cần sửa code pipeline
 """
 
+import logging
 from dotenv import load_dotenv
-from backend.data_ingestion.transformation.transformers_LangDocs import get_cv_Docs, get_company_Docs
+from backend.data_ingestion.loading.base_loader import BaseLoader
+from backend.data_ingestion.loading.cv_loader import CVLoader
+from backend.data_ingestion.loading.company_docs_loader import CompanyDocsLoader
 from backend.data_ingestion.storage import save_all
 from backend.agents.llm_processor.llm_factory import ModelFactory
 import backend.constant_variables as const
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 def _get_embedding_model():
@@ -23,105 +31,102 @@ def _get_embedding_model():
     )
 
 
-def run_cv_pipeline(
-    cv_path: str = None,
+# =====================================================================
+#  Pipeline Configurations — Thêm nguồn dữ liệu mới? Thêm dict vào đây!
+# =====================================================================
+
+PIPELINE_CONFIGS = [
+    {
+        "name": "CVs",
+        "loader": CVLoader(max_workers=4),
+        "path": const.CV_PATH,
+        "collection_name": "CVs",
+        "langdocs_var_name": "cv_docs",
+        "embedding_save_path": const.CV_EMBEDDING_SAVE_DIR,
+        "bm25_save_path": const.BM25_CV_PATH,
+    },
+    {
+        "name": "Company Documents",
+        "loader": CompanyDocsLoader(),
+        "path": const.COMPANY_DOCS_PATH,
+        "collection_name": "company_docs",
+        "langdocs_var_name": "company_docs",
+        "embedding_save_path": const.COMPANY_EMBEDDING_SAVE_DIR,
+        "bm25_save_path": const.BM25_COMPANY_PATH,
+    },
+    # Có thể thêm nguồn mới ở đây:
+    # {
+    #     "name": "Job Descriptions",
+    #     "loader": JDLoader(),
+    #     "path": const.JD_PATH,
+    #     "collection_name": "job_descriptions",
+    #     ...
+    # },
+]
+
+
+def run_pipeline(
+    loader: BaseLoader,
+    path: str,
+    collection_name: str,
+    langdocs_var_name: str,
+    embedding_save_path: str,
+    bm25_save_path: str,
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
 ):
     """
-    Pipeline nạp dữ liệu CV:
-      1. Load & extract thông tin từ PDF
-      2. Transform thành LangChain Documents
-      3. Lưu tất cả (ChromaDB, embeddings, BM25, langdocs)
+    Pipeline generic: Nhận một BaseLoader bất kỳ và thực hiện:
+      1. loader.get_docs(path) → LangChain Documents
+      2. save_all() → Lưu vào ChromaDB + Embeddings + BM25 + LangDocs
     """
-    cv_path = cv_path or str(const.CV_PATH)
+    docs = loader.get_docs(path)
 
-    print("\n[Pipeline] Đang xử lý CVs...")
-    print(f"[Pipeline] Đường dẫn: {cv_path}")
-
-    # 1. Load & Transform
-    cv_docs = get_cv_Docs(cv_path)
-
-    if not cv_docs:
-        print("[Pipeline] Không tìm thấy CV nào. Bỏ qua.")
+    if not docs:
+        logger.info(f"[Pipeline] Không có dữ liệu cho '{collection_name}'. Bỏ qua.")
         return
 
-    # 2. Save All
     embedding_model = _get_embedding_model()
 
     save_all(
-        docs=cv_docs,
-        collection_name="CVs",
+        docs=docs,
+        collection_name=collection_name,
         embedding_model=embedding_model,
         chroma_dir=str(const.CHROMA_DIR),
         langdocs_dir=str(const.LANGDOCS_SAVE_DIR),
-        langdocs_var_name="cv_docs",
-        embedding_save_path=str(const.CV_EMBEDDING_SAVE_DIR),
-        bm25_save_path=str(const.BM25_CV_PATH),
+        langdocs_var_name=langdocs_var_name,
+        embedding_save_path=str(embedding_save_path),
+        bm25_save_path=str(bm25_save_path),
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
     )
 
-    print("[Pipeline] Hoàn tất nạp dữ liệu CV")
-
-
-def run_company_docs_pipeline(
-    company_path: str = None,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 200,
-):
-    """
-    Pipeline nạp dữ liệu company documents:
-      1. Load PDF company documents
-      2. Transform thành LangChain Documents
-      3. Lưu tất cả (ChromaDB, embeddings, BM25, langdocs)
-    """
-    company_path = company_path or str(const.COMPANY_DOCS_PATH)
-
-    print("\n[Pipeline] Đang xử lý Company Documents...")
-    print(f"[Pipeline] Đường dẫn: {company_path}")
-
-    # 1. Load & Transform
-    company_docs = get_company_Docs(company_path)
-
-    if not company_docs:
-        print("[Pipeline] Không tìm thấy company documents nào. Bỏ qua.")
-        return
-
-    # 2. Save All
-    embedding_model = _get_embedding_model()
-
-    save_all(
-        docs=company_docs,
-        collection_name="company_docs",
-        embedding_model=embedding_model,
-        chroma_dir=str(const.CHROMA_DIR),
-        langdocs_dir=str(const.LANGDOCS_SAVE_DIR),
-        langdocs_var_name="company_docs",
-        embedding_save_path=str(const.COMPANY_EMBEDDING_SAVE_DIR),
-        bm25_save_path=str(const.BM25_COMPANY_PATH),
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
-
-    print("[Pipeline] Hoàn tất nạp dữ liệu Company Documents")
+    logger.info(f"[Pipeline] Hoàn tất nạp dữ liệu '{collection_name}'")
 
 
 def run_full_pipeline():
-    """Chạy toàn bộ pipeline nạp dữ liệu"""
+    """Chạy toàn bộ pipeline nạp dữ liệu từ PIPELINE_CONFIGS."""
     print("=" * 50)
-    print("BẮT ĐẦU QUÁ TRÌNH NẠP DỮ LIỆU VÀO VECTOR DATABASE")
+    print("BAT DAU QUA TRINH NAP DU LIEU VAO VECTOR DATABASE")
     print("=" * 50)
 
     try:
-        print("\n[1/2] Đang xử lý thư mục chứa CVs...")
-        run_cv_pipeline()
+        total = len(PIPELINE_CONFIGS)
+        for idx, config in enumerate(PIPELINE_CONFIGS, start=1):
+            name = config["name"]
+            print(f"\n[{idx}/{total}] Dang xu ly: {name}...")
 
-        print("\n[2/2] Đang xử lý thư mục chứa Company Documents...")
-        run_company_docs_pipeline()
+            run_pipeline(
+                loader=config["loader"],
+                path=str(config["path"]),
+                collection_name=config["collection_name"],
+                langdocs_var_name=config["langdocs_var_name"],
+                embedding_save_path=config["embedding_save_path"],
+                bm25_save_path=config["bm25_save_path"],
+            )
 
-        print("\nXONG! Tất cả dữ liệu đã được lưu an toàn.")
+        print(f"\nXONG! Tat ca {total} nguon du lieu da duoc luu an toan.")
 
     except Exception as e:
-        print(f"\nĐã xảy ra lỗi trong quá trình nạp dữ liệu: {e}")
+        logger.error(f"Da xay ra loi trong qua trinh nap du lieu: {e}")
         raise

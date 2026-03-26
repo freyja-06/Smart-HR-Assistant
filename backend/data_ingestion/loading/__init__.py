@@ -1,8 +1,9 @@
 """
-Loading package: PDF loading and text processing utilities.
+Loading package: PDF loading, text processing, and document loader classes.
 
-Không re-export eagerly để tránh circular import.
-Import trực tiếp từ submodule khi cần:
+Sử dụng BaseLoader pattern:
+  from backend.data_ingestion.loading.base_loader import BaseLoader
+  from backend.data_ingestion.loading.cv_loader import CVLoader
+  from backend.data_ingestion.loading.company_docs_loader import CompanyDocsLoader
   from backend.data_ingestion.loading.text_utils import load_pdf, chunk_text
-  from backend.data_ingestion.loading.loaders import batch_process_cvs, batch_process_company_docs
 """
