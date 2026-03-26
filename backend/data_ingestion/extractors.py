@@ -1,3 +1,4 @@
+import logging
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
@@ -5,43 +6,51 @@ from backend.data_ingestion.schemas import CandidateProfile
 from backend.agents.llm_processor.llm_factory import ModelFactory
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
-llm = ModelFactory.create(
-                model_type="llm", 
-                provider="ollama", 
-                model_name="qwen2.5:3b"
-            )
-llm_with_structed_output = llm.with_structured_output(CandidateProfile)
+# Khởi tạo biến toàn cục để lưu trữ cache cho chain
+_chain = None
 
-instruction = """
-        You are an expert HR Data Extractor.
+def get_extractor_chain():
+    """Hàm khởi tạo trễ (Lazy initialization) cho LLM chain. Chỉ tạo chain ở lần gọi đầu tiên."""
+    global _chain
+    if _chain is None:
+        llm = ModelFactory.create(
+            model_type="llm", 
+            provider="ollama", 
+            model_name="qwen2.5:3b"
+        )
+        llm_with_structed_output = llm.with_structured_output(CandidateProfile)
 
-        Extract information STRICTLY following the schema.
+        instruction = """
+                You are an expert HR Data Extractor.
 
-        IMPORTANT:
-        - This is ONLY a PART of the CV (chunk)
-        - Extract only information present in this chunk
-        - Do NOT hallucinate missing fields
-        - Merge with other chunks later
+                Extract information STRICTLY following the schema.
 
-        Rules:
-        - Return valid JSON only
-        - Missing → None or empty list
-"""
+                IMPORTANT:
+                - This is ONLY a PART of the CV (chunk)
+                - Extract only information present in this chunk
+                - Do NOT hallucinate missing fields
+                - Merge with other chunks later
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", instruction),
-    ("human", "{cv_text}")
-])
+                Rules:
+                - Return valid JSON only
+                - Missing → None or empty list
+        """
 
-chain = prompt | llm_with_structed_output
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", instruction),
+            ("human", "{cv_text}")
+        ])
+
+        _chain = prompt | llm_with_structed_output
+    return _chain
 
 
 def load_pdf(file_path: str) -> str:
     loader = PyPDFLoader(file_path)
     pages = loader.load()
-    # Concatenate all contents
-    full_text = "\n".join([page.page_content for page in pages]) + f"\n \n Đường dẫn tới tệp tài liệu pdf này: {file_path}"
+    full_text = "\n".join([page.page_content for page in pages])
     return full_text
 
 def chunk_text(text, chunk_size=2000, overlap=200):
@@ -83,10 +92,12 @@ def merge_profiles(results):
 
 
 def extract_chunk(chunk, retries=2):
-    for _ in range(retries):
+    chain = get_extractor_chain()
+    for attempt in range(retries):
         try:
             return chain.invoke({"cv_text": chunk})
-        except Exception:
+        except Exception as e:
+            logger.error(f"Lỗi extract_chunk (Lần thử {attempt + 1}/{retries}): {e}")
             continue
     return None
 

@@ -1,12 +1,12 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 class CandidateProfile(BaseModel):
-    full_name: str
-    email: str
-    phone: str | None = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
 
-    summary: str | None = None
+    summary: Optional[str] = None
 
     # đơn giản hóa skill
     skills: List[str] = Field(default_factory=list)
@@ -22,5 +22,3 @@ class CandidateProfile(BaseModel):
         default_factory=list,
         description="Each item: 'Degree - Major - School'"
     )
-
-    cv_file_name: str = Field(description = "Tên file cv của ứng viên, chỉ cần trả về định dạng <tên file>.pdf, ví dụ 'abc.pdf' ") 

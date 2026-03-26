@@ -4,11 +4,11 @@ from backend.data_ingestion.loaders import batch_process_cvs, batch_process_comp
 from typing import List
 
 
-def profile_to_document(profile: CandidateProfile) -> Document:
+def profile_to_document(profile: CandidateProfile, file_path) -> Document:
 
     # 1. Skills
     skills_desc = ", ".join(profile.skills) if profile.skills else "N/A"
-    skill_names = skills_desc  # đã là string rồi
+    skill_names = skills_desc
 
     # 2. Experience
     experience_text = "\n".join(profile.experiences) if profile.experiences else "N/A"
@@ -21,7 +21,7 @@ def profile_to_document(profile: CandidateProfile) -> Document:
 
     # --- PAGE CONTENT ---
     page_content = f"""
-        Candidate Name: {profile.full_name}
+        Candidate Name: {profile.full_name or "N/A"}
         Professional Summary: {profile.summary or "N/A"}
 
         Top Skills: {skills_desc}
@@ -35,11 +35,11 @@ def profile_to_document(profile: CandidateProfile) -> Document:
 
     # --- METADATA ---
     metadata = {
-        "full_name": profile.full_name,
-        "email": profile.email,
+        "full_name": profile.full_name or "",
+        "email": profile.email or "",
         "phone": profile.phone or "",
         "skills": skill_names,
-        "file_name": profile.cv_file_name
+        "file_name": file_path
     }
 
     return Document(
@@ -49,10 +49,10 @@ def profile_to_document(profile: CandidateProfile) -> Document:
 
 def get_cv_Docs(directory_path: str):
     print(f"\n[DEBUG] 1. Bắt đầu gọi batch_process_cvs từ thư mục: {directory_path}...")
-    profiles: List[CandidateProfile] = batch_process_cvs(directory_path)
+    profiles, file_paths= batch_process_cvs(directory_path)
     print(f"[DEBUG] 1.1. Hoàn tất batch_process_cvs. Đã trích xuất được {len(profiles)} profiles.")
     
-    docs = [profile_to_document(i) for i in profiles]
+    docs = [profile_to_document(profile, path) for profile, path in zip(profiles, file_paths)]
     print("[DEBUG] 1.2. Hoàn tất chuyển đổi profile sang Document.")
     return docs
 
@@ -61,6 +61,7 @@ def get_company_Docs(directory_path: str):
     company_texts, file_paths = batch_process_company_docs(directory_path)
     print(f"[DEBUG] 2.1. Hoàn tất batch_process_company_docs. Lấy được {len(company_texts)} docs.")
     
-    company_docs = [Document(page_content=text) for text in company_texts]
-    return [Document(page_content=company_docs[i].page_content, metadata = {"file_path": file_paths[i]}) for i in range(len(company_docs))]
-
+    return [
+        Document(page_content=text, metadata={"file_path": path}) 
+        for text, path in zip(company_texts, file_paths)
+    ]

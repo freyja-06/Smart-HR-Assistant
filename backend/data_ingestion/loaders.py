@@ -11,34 +11,39 @@ logger = logging.getLogger(__name__)
 def batch_process_cvs(directory_path: str):
     """
     Scan the entire directory and process all detected PDF files.
-    Return a list of successfully extracted CandidateProfile objects.
+    Return a list of successfully extracted CandidateProfile objects and their file paths.
     """
 
     pdf_files = glob.glob(os.path.join(directory_path, "*.pdf"))
 
     results = []
+    successful_file_paths = [] 
     max_workers = 4 
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Mapping future -> file path
         futures = {
             executor.submit(process_single_cv, pdf): pdf
             for pdf in pdf_files
         }
 
         for idx, future in enumerate(as_completed(futures), start=1):
+            pdf_path = futures[future] 
             try:
                 result = future.result()
                 if result:
                     results.append(result)
+                    successful_file_paths.append(pdf_path)
 
                 print(f"[{idx}/{len(pdf_files)}] Done")
 
             except Exception as e:
-                print(f"Lỗi: {e}")
+                print(f"Lỗi file {pdf_path}: {e}")
 
-    print(f"🎉 Hoàn tất: {len(results)}/{len(pdf_files)}")
+    print(f"Hoàn tất: {len(results)}/{len(pdf_files)}")
 
-    return results
+    # Trả về cả list kết quả và list đường dẫn file
+    return results, successful_file_paths
 
 def batch_process_company_docs(directory_path: str):
     processed_company_docs: List[str] = []
