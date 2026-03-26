@@ -70,11 +70,11 @@ def general_chat_node(state: GraphState):
     response = response_agent.invoke(state)
     return {"final_answer": response}
 
-def rag_search_node(state: GraphState):
+async def rag_search_node(state: GraphState):
     task_id = state["current_task_id"]
     
-    # 1. Gọi Subgraph để lấy dữ liệu (LangGraph tự tương thích async/sync ở đây)
-    result = rag_app.invoke(state)
+    # 1. Gọi Subgraph bất đồng bộ (vì subgraph chứa async nodes)
+    result = await rag_app.ainvoke(state)
 
     # 2. Xử lý logic Thất bại (nếu subgraph có lỗi)
     if result.get("module_outputs", {}).get("error"):

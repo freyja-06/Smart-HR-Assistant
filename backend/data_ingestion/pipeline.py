@@ -104,13 +104,13 @@ def run_company_docs_pipeline(
         chunk_overlap=chunk_overlap,
     )
 
-    print("[Pipeline] ✅ Hoàn tất nạp dữ liệu Company Documents")
+    print("[Pipeline] Hoàn tất nạp dữ liệu Company Documents")
 
 
 def run_full_pipeline():
     """Chạy toàn bộ pipeline nạp dữ liệu"""
     print("=" * 50)
-    print("🚀 BẮT ĐẦU QUÁ TRÌNH NẠP DỮ LIỆU VÀO VECTOR DATABASE")
+    print("BẮT ĐẦU QUÁ TRÌNH NẠP DỮ LIỆU VÀO VECTOR DATABASE")
     print("=" * 50)
 
     try:
@@ -120,8 +120,8 @@ def run_full_pipeline():
         print("\n[2/2] Đang xử lý thư mục chứa Company Documents...")
         run_company_docs_pipeline()
 
-        print("\n✅ XONG! Tất cả dữ liệu đã được lưu an toàn.")
+        print("\nXONG! Tất cả dữ liệu đã được lưu an toàn.")
 
     except Exception as e:
-        print(f"\n❌ Đã xảy ra lỗi trong quá trình nạp dữ liệu: {e}")
+        print(f"\nĐã xảy ra lỗi trong quá trình nạp dữ liệu: {e}")
         raise

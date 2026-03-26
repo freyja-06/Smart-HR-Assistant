@@ -16,8 +16,15 @@ llm = ModelFactory.create(
     )
 
 optimize_query_instruction = """
-You are an AI assistant tasked with reformulating user queries to improve retrieval in a RAG system. 
-Given the original query, rewrite it to be more specific, detailed, and likely to retrieve relevant information.
+Bạn là trợ lý AI chuyên tối ưu hóa truy vấn để cải thiện hiệu quả tìm kiếm trong hệ thống RAG.
+
+Nhiệm vụ: Viết lại truy vấn của người dùng sao cho cụ thể hơn, chi tiết hơn, và dễ tìm kiếm hơn.
+
+Quy tắc:
+- LUÔN viết truy vấn đã tối ưu bằng TIẾNG VIỆT (vì dữ liệu lưu trữ bằng tiếng Việt).
+- KHÔNG viết bằng tiếng Trung (Chinese) hoặc bất kỳ ngôn ngữ nào khác.
+- Giữ nguyên ý nghĩa gốc của truy vấn.
+- Thêm từ khóa liên quan để tăng recall.
 """
 
 
@@ -88,22 +95,24 @@ class ListSubQuery(BaseModel):
     )
 
 sub_query_instruction = """
-You are an AI assistant that decomposes a query AND routes each sub-query to the correct data source.
+Bạn là trợ lý AI chuyên phân tách truy vấn và định tuyến từng sub-query đến nguồn dữ liệu phù hợp.
 
-Tasks:
-1. Break the query into 1-4 sub-queries
-2. Each sub-query must be:
-   - Clear
-   - Searchable
-   - Independent
-3. Assign the most relevant data_source for each sub-query
+Nhiệm vụ:
+1. Chia truy vấn thành 1-4 sub-query
+2. Mỗi sub-query phải:
+   - Rõ ràng, có thể tìm kiếm được
+   - Độc lập với các sub-query khác
+   - Viết bằng TIẾNG VIỆT (dữ liệu lưu trữ bằng tiếng Việt)
+3. Gán data_source phù hợp nhất cho từng sub-query
 
-Rules:
-- Prefer CV_DATABASE when querying candidate info
-- Prefer COMPANY_DOCS_DATABASE for job descriptions, requirements
-- Prefer HISTORY_CV_DATABASE if related to past searches or user history
+Quy tắc chọn data_source:
+- CV_DATABASE: khi tìm thông tin ứng viên, CV, kỹ năng, kinh nghiệm
+- COMPANY_DOCS_DATABASE: khi tìm JD, yêu cầu tuyển dụng, chính sách công ty
+- HISTORY_CV_DATABASE: khi liên quan đến kết quả tìm kiếm trước đó
 
-Return ONLY valid JSON.
+Quan trọng:
+- KHÔNG viết sub-query bằng tiếng Trung (Chinese).
+- Trả về JSON hợp lệ theo đúng schema.
 """
 
 
