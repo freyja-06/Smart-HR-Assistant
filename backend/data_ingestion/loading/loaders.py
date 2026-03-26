@@ -1,5 +1,10 @@
+"""
+Batch processing: quét thư mục và xử lý hàng loạt file PDF.
+"""
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from backend.data_ingestion.extractors import process_single_cv, load_pdf
+from backend.data_ingestion.extraction.cv_processor import process_single_cv
+from backend.data_ingestion.loading.text_utils import load_pdf
 from typing import List
 import glob
 import os
@@ -35,17 +40,18 @@ def batch_process_cvs(directory_path: str):
                     results.append(result)
                     successful_file_paths.append(pdf_path)
 
-                print(f"[{idx}/{len(pdf_files)}] Done")
+                logger.info(f"[{idx}/{len(pdf_files)}] Done")
 
             except Exception as e:
-                print(f"Lỗi file {pdf_path}: {e}")
+                logger.error(f"Lỗi file {pdf_path}: {e}")
 
-    print(f"Hoàn tất: {len(results)}/{len(pdf_files)}")
+    logger.info(f"Hoàn tất: {len(results)}/{len(pdf_files)}")
 
     # Trả về cả list kết quả và list đường dẫn file
     return results, successful_file_paths
 
 def batch_process_company_docs(directory_path: str):
+    """Load tất cả PDF company documents từ thư mục."""
     processed_company_docs: List[str] = []
     file_paths: List[str] = []
 
@@ -60,6 +66,6 @@ def batch_process_company_docs(directory_path: str):
                 file_paths.append(pdf_file)
 
         except Exception as e:
-            print(f"File handling error {pdf_file}: {e}")
+            logger.error(f"File handling error {pdf_file}: {e}")
 
     return processed_company_docs, file_paths

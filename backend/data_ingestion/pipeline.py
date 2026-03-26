@@ -6,7 +6,7 @@ Ingest Pipeline Orchestrator
 """
 
 from dotenv import load_dotenv
-from backend.data_ingestion.transformers_LangDocs import get_cv_Docs, get_company_Docs
+from backend.data_ingestion.transformation.transformers_LangDocs import get_cv_Docs, get_company_Docs
 from backend.data_ingestion.storage import save_all
 from backend.agents.llm_processor.llm_factory import ModelFactory
 import backend.constant_variables as const
@@ -62,7 +62,7 @@ def run_cv_pipeline(
         chunk_overlap=chunk_overlap,
     )
 
-    print("[Pipeline] ✅ Hoàn tất nạp dữ liệu CV")
+    print("[Pipeline] Hoàn tất nạp dữ liệu CV")
 
 
 def run_company_docs_pipeline(

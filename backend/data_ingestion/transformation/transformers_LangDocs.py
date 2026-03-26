@@ -1,7 +1,14 @@
+"""
+Chuyển đổi dữ liệu đã trích xuất thành LangChain Document objects.
+"""
+
+import logging
 from langchain_core.documents import Document
 from backend.data_ingestion.schemas import CandidateProfile
-from backend.data_ingestion.loaders import batch_process_cvs, batch_process_company_docs
+from backend.data_ingestion.loading.loaders import batch_process_cvs, batch_process_company_docs
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 
 def profile_to_document(profile: CandidateProfile, file_path) -> Document:
@@ -15,9 +22,6 @@ def profile_to_document(profile: CandidateProfile, file_path) -> Document:
 
     # 3. Education
     education_text = "\n".join(profile.education) if profile.education else "N/A"
-
-    # 4. Languages (bạn đã bỏ field này → remove luôn hoặc optional)
-    langs = "N/A"
 
     # --- PAGE CONTENT ---
     page_content = f"""
@@ -48,18 +52,20 @@ def profile_to_document(profile: CandidateProfile, file_path) -> Document:
     )
 
 def get_cv_Docs(directory_path: str):
-    print(f"\n[DEBUG] 1. Bắt đầu gọi batch_process_cvs từ thư mục: {directory_path}...")
-    profiles, file_paths= batch_process_cvs(directory_path)
-    print(f"[DEBUG] 1.1. Hoàn tất batch_process_cvs. Đã trích xuất được {len(profiles)} profiles.")
+    """Load CVs, extract profiles, và chuyển thành LangChain Documents."""
+    logger.info(f"Bắt đầu gọi batch_process_cvs từ thư mục: {directory_path}...")
+    profiles, file_paths = batch_process_cvs(directory_path)
+    logger.info(f"Hoàn tất batch_process_cvs. Đã trích xuất được {len(profiles)} profiles.")
     
     docs = [profile_to_document(profile, path) for profile, path in zip(profiles, file_paths)]
-    print("[DEBUG] 1.2. Hoàn tất chuyển đổi profile sang Document.")
+    logger.info("Hoàn tất chuyển đổi profile sang Document.")
     return docs
 
 def get_company_Docs(directory_path: str):
-    print(f"\n[DEBUG] 2. Bắt đầu gọi batch_process_company_docs từ thư mục: {directory_path}...")
+    """Load company documents và chuyển thành LangChain Documents."""
+    logger.info(f"Bắt đầu gọi batch_process_company_docs từ thư mục: {directory_path}...")
     company_texts, file_paths = batch_process_company_docs(directory_path)
-    print(f"[DEBUG] 2.1. Hoàn tất batch_process_company_docs. Lấy được {len(company_texts)} docs.")
+    logger.info(f"Hoàn tất batch_process_company_docs. Lấy được {len(company_texts)} docs.")
     
     return [
         Document(page_content=text, metadata={"file_path": path}) 
