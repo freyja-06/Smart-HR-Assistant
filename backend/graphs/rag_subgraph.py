@@ -2,9 +2,8 @@ from backend.state.graph_state import GraphState
 from backend.agents.rag_agents import sub_query_agent
 from backend.agents.coordinator import Task
 from langgraph.graph import StateGraph, START, END
-from backend.extract_cv.RAG.rag_backend import general_retrieve
+from backend.retrieval.rag_backend import general_retrieve
 from backend.agents.rag_agents import context_compressor_agent
-from typing import Dict
 import asyncio
 
 
@@ -30,7 +29,7 @@ def get_prompt_for_retrieve(task: Task):
 
 def optimize_query_node(state: GraphState):
     task_id = state["current_task_id"]
-    task = state["plan"].tasks[task_id]
+    task = next(t for t in state["plan"].tasks if t.task_id == task_id)
 
     print(f"Đang chạy task {task_id}: {task.instruction}")
 

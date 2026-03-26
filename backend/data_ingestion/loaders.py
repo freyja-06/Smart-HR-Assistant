@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from backend.extract_cv.extract_to_pydantic_model import process_single_cv, load_pdf
+from backend.data_ingestion.extractors import process_single_cv, load_pdf
 from typing import List
 import glob
 import os

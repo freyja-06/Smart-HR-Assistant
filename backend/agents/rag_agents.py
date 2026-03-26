@@ -1,16 +1,19 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableSequence
-from backend.agents.llm_processor.llm_factory import LLMManager # Thay đổi import
+from backend.agents.llm_processor.llm_factory import ModelFactory
 from pydantic import BaseModel, Field
 from typing import Literal, List, Optional
 import asyncio
 
-llm = LLMManager.get_llm_with_fallbacks(
-    temperature=0,
-    max_tokens=2048,
-    num_ctx=8192
-)
+llm = ModelFactory.create(
+        model_type="llm", 
+        provider="ollama", 
+        model_name="qwen2.5", 
+        temperature=0,
+        max_tokens=2048,
+        num_ctx=8192
+    )
 
 optimize_query_instruction = """
 You are an AI assistant tasked with reformulating user queries to improve retrieval in a RAG system. 
@@ -108,12 +111,7 @@ sub_query_prompt = ChatPromptTemplate.from_messages([
     ("system", sub_query_instruction),
     ("human", "{query}")
 ])
-structured_llm = LLMManager.get_llm_with_fallbacks(
-    pydantic_schema=ListSubQuery,
-    temperature=0,
-    max_tokens=2048,
-    num_ctx=8192
-)
+structured_llm = llm.with_structured_output(ListSubQuery)
 # Tối ưu lại việc ép kiểu cho llm
 
 sub_query_agent: RunnableSequence = (

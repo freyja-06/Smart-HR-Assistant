@@ -1,48 +1,75 @@
-from langchain_chroma import Chroma
+"""
+Database Configuration
+======================
+Module kết nối vào các database đã tồn tại (ChromaDB, BM25, LangDocs, Embeddings).
+Chỉ dùng cho RUNTIME (không dùng cho ingest).
+"""
+
 from dotenv import load_dotenv
 import backend.constant_variables as const
-from backend.extract_cv.RAG.bm25_module import load_bm25
-from backend.config.loading_and_caching import load_or_create
-import numpy as np
+from backend.data_ingestion.storage import (
+    load_chromadb,
+    load_bm25_index,
+    load_langdocs,
+    load_embeddings,
+)
 from backend.agents.llm_processor.llm_factory import ModelFactory
-
-CHROMA_DIR = const.CHROMA_DIR
-BM25_CV_PATH = const.BM25_CV_PATH 
-BM25_COMPANY_PATH = const.BM25_COMPANY_PATH
-LANGDOCS_SAVE_DIR = const.LANGDOCS_SAVE_DIR
-CV_EMBEDDING_SAVE_DIR = const.CV_EMBEDDING_SAVE_DIR
-COMPANY_EMBEDDING_SAVE_DIR = const.COMPANY_EMBEDDING_SAVE_DIR 
 
 load_dotenv()
 
+# =====================================================================
+#  Embedding Model (dùng chung cho tất cả Chroma collections)
+# =====================================================================
+
 EMBEDDING = ModelFactory.create(
-       model_type="embedding",
-       provider="ollama",
-       model_name="nomic-embed-text",
-    )
-
-# KẾT NỐI VÀO DATABASE ĐÃ TỒN TẠI
-cv_store = Chroma(
-    collection_name="CVs", 
-    persist_directory=str(CHROMA_DIR),
-    embedding_function=EMBEDDING
+    model_type="embedding",
+    provider="ollama",
+    model_name="nomic-embed-text",
 )
 
-company_docs_store = Chroma(
+# =====================================================================
+#  ChromaDB Vector Stores
+# =====================================================================
+
+cv_store = load_chromadb(
+    collection_name="CVs",
+    embedding_model=EMBEDDING,
+    chroma_dir=str(const.CHROMA_DIR),
+)
+
+company_docs_store = load_chromadb(
     collection_name="company_docs",
-    persist_directory=str(CHROMA_DIR),
-    embedding_function=EMBEDDING
+    embedding_model=EMBEDDING,
+    chroma_dir=str(const.CHROMA_DIR),
 )
 
-cv_bm25, cv_corpus = load_bm25(BM25_CV_PATH)
-company_docs_bm25, company_docs_corpus = load_bm25(BM25_COMPANY_PATH)
+# =====================================================================
+#  BM25 Indexes
+# =====================================================================
 
-cv_docs = load_or_create(folder_path = LANGDOCS_SAVE_DIR , var_name = "cv_docs")
-company_docs = load_or_create(folder_path = LANGDOCS_SAVE_DIR , var_name = "company_docs")
+cv_bm25, cv_corpus = load_bm25_index(str(const.BM25_CV_PATH))
+company_docs_bm25, company_docs_corpus = load_bm25_index(str(const.BM25_COMPANY_PATH))
 
+# =====================================================================
+#  LangChain Documents & Embeddings
+# =====================================================================
 
-company_embeddings = np.load(COMPANY_EMBEDDING_SAVE_DIR, allow_pickle=True)
-cv_embeddings = np.load(CV_EMBEDDING_SAVE_DIR, allow_pickle=True)
+cv_docs = load_langdocs(
+    folder_path=str(const.LANGDOCS_SAVE_DIR),
+    var_name="cv_docs",
+)
+
+company_docs = load_langdocs(
+    folder_path=str(const.LANGDOCS_SAVE_DIR),
+    var_name="company_docs",
+)
+
+company_embeddings = load_embeddings(str(const.COMPANY_EMBEDDING_SAVE_DIR))
+cv_embeddings = load_embeddings(str(const.CV_EMBEDDING_SAVE_DIR))
+
+# =====================================================================
+#  Public API
+# =====================================================================
 
 __all__ = [
     "cv_docs",
@@ -53,5 +80,5 @@ __all__ = [
     "company_docs_bm25",
     "cv_embeddings",
     "company_embeddings",
-    "EMBEDDING"
+    "EMBEDDING",
 ]

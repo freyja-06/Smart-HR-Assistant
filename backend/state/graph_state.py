@@ -31,7 +31,7 @@ Sample: một node xử lý tác vụ
 
     def rag_search_node(state: GraphState):
         task_id = state["current_task_id"]
-        task = state["plan"].tasks[task_id]
+        task = next(t for t in state["plan"].tasks if t.task_id == task_id)
 
         print(f"Đang chạy task {task_id}: {task.instruction}")
 
@@ -45,8 +45,8 @@ Sample: một node xử lý tác vụ
 """
 
 def get_next_task(plan, completed, failed):
-    for task_id in sorted(plan.tasks.keys()):
-        task = plan.tasks[task_id]
+    for task in sorted(plan.tasks, key=lambda t: t.task_id):
+        task_id = task.task_id
 
         if task_id in completed or task_id in failed:
             continue

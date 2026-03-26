@@ -3,7 +3,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from backend.agents.coordinator import manager_agent, response_agent
 from backend.state.graph_state import GraphState, workflow
 from backend.graphs.rag_subgraph import rag_workflow
-from backend.extract_cv.RAG.rag_backend import build_history_store, update_history_store
+from backend.retrieval.rag_backend import build_history_store, update_history_store
 import backend.constant_variables as const
 from backend.agents.llm_processor.llm_factory import ModelFactory
 
@@ -30,8 +30,8 @@ def router_node(state: GraphState):
         }
 
     # tìm task tiếp theo hợp lệ
-    for task_id in sorted(plan.tasks.keys()):
-        task = plan.tasks[task_id]
+    for task in sorted(plan.tasks, key=lambda t: t.task_id):
+        task_id = task.task_id
 
         if task_id in completed or task_id in failed:
             continue

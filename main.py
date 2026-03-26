@@ -16,10 +16,14 @@ if __name__ == "__main__":
 
             else:
                 user_input = str(input("Bạn còn yêu cầu gì khác không? \n"))
+
+                if user_input.lower() == "không":
+                    break
+
                 state = {"user_input": user_input, "history_cv_store": state.get("history_cv_store")}
             
-                result = run(state, config)
-                print(result["final_answer"])
+            result = run(state, config)
+            print(result["final_answer"])
                 # Nên lưu các biến nhiệm vụ để trả về kết quả cho người dùng
         
         except Exception as e:

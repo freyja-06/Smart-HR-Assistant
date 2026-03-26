@@ -1,16 +1,20 @@
 from langchain_core.prompts import ChatPromptTemplate
-from backend.agents.llm_processor.llm_factory import LLMManager
+from backend.agents.llm_processor.llm_factory import ModelFactory
 from pydantic import BaseModel, Field
 from typing import Literal, List, Any, Dict, Optional
 from langchain_core.runnables import RunnableSequence, chain
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 
-llm = LLMManager.get_llm_with_fallbacks(
-    temperature=0,
-    max_tokens=2048,
-    num_ctx=8192
-)
+llm = ModelFactory.create(
+        model_type="llm", 
+        provider="ollama", 
+        model_name="qwen2.5", 
+        temperature=0,
+        max_tokens=2048,
+        num_ctx=8192
+    )
+
 
 class Task(BaseModel):
     task_id: int = Field(
@@ -45,20 +49,16 @@ class Task(BaseModel):
     )
 
 class Plan(BaseModel):
-    tasks: Dict[int, Task] = Field(
+    tasks: List[Task] = Field(
+        default_factory=list,
         description="""
-    Danh sách (Dictionary mapping task_id → Task) các nhiệm vụ cần thực hiện, tạo thành một kế hoạch hoàn chỉnh.
+    Danh sách các nhiệm vụ cần thực hiện, tạo thành một kế hoạch hoàn chỉnh.
     Nếu yêu cầu thiếu thông tin cần thiết, ví dụ như việc bảo gửi email nhưng không rõ gửi cho ai và nội dung gì
     hãy trả về danh sách rỗng!
         """
     )
 
-manager_llm = LLMManager.get_llm_with_fallbacks(
-    pydantic_schema=Plan, # Thêm tham số này
-    temperature=0,
-    max_tokens=2048,
-    num_ctx=8192
-)
+manager_llm = llm.with_structured_output(Plan)
 
 manager_instruction = """
 
@@ -106,9 +106,7 @@ Each task must contain:
 - instruction
 - optional args
 
-Return ONLY the structured Plan object, with tasks as a dictionary where:
-- key = task_id (int, same as Task's object)
-- value = Task object
+Return ONLY the structured Plan object, with tasks as a list of Task objects.
 - task_id must start from 0 and increase sequentially.
 
 """
@@ -265,5 +263,4 @@ response_prompt = ChatPromptTemplate.from_messages([
     ("human", "{final_prompt}")
 ])
 response_agent: RunnableSequence = get_final_prompt | response_prompt | llm | StrOutputParser()
-
 

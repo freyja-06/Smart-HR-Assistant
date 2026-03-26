@@ -1,7 +1,7 @@
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
-from backend.extract_cv.candidate_profile import CandidateProfile
+from backend.data_ingestion.schemas import CandidateProfile
 from backend.agents.llm_processor.llm_factory import ModelFactory
 
 load_dotenv()

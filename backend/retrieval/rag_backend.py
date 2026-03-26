@@ -4,8 +4,7 @@ import numpy as np
 from typing import List, Optional
 from backend.config.database import *
 from rank_bm25 import BM25Okapi
-import backend.constant_variables as const
-from backend.extract_cv.RAG.choose_k import adaptive_k, compute_base_k
+from backend.retrieval.choose_k import adaptive_k, compute_base_k
 
 
 def build_history_store(
@@ -246,7 +245,7 @@ def company_docs_retrieve(
     Truy vấn thông tin tài liệu của công ty
     """
 
-    # 1. Fusion retrieval → lấy top 50 docs
+    # 1. Fusion retrieval
     top_docs, top_embeddings = fusion_retrieval(
         vectorstore=company_docs_store,
         all_docs=company_docs,
