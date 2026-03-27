@@ -1,35 +1,24 @@
 from backend.graphs.main_graph import run
+import asyncio
 from backend.state.graph_state import GraphState
 from dotenv import load_dotenv
 load_dotenv()
 
 
-state: GraphState = {}
-config = {"configurable": {"thread_id": "1"}}
-if __name__ == "__main__":
-
+async def main():
+    state: GraphState = {}
+    config = {"configurable": {"thread_id": "1"}}
     while True:
+        if not state:
+            state = {"user_input": str(input("Chào HR! Bạn có yêu cầu gì? \n"))}
+        else:
+            user_input = str(input("Bạn còn yêu cầu gì khác không? \n"))
+            if user_input.lower() == "không":
+                break
+            state = {"user_input": user_input, "history_cv_store": state.get("history_cv_store")}
         
-        try:
-            if not state:
-                state = {"user_input": str(input("Chào HR! Bạn có yêu cầu gì? \n"))}
+        result = await run(state, config)
+        print(result["final_answer"])
 
-            else:
-                user_input = str(input("Bạn còn yêu cầu gì khác không? \n"))
-
-                if user_input.lower() == "không":
-                    break
-
-                state = {"user_input": user_input, "history_cv_store": state.get("history_cv_store")}
-            
-            result = run(state, config)
-            print(result["final_answer"])
-                # Nên lưu các biến nhiệm vụ để trả về kết quả cho người dùng
-        
-        except Exception as e:
-            print(f"\n Lỗi: {e}")
-            continue
-
-        
-
-
+if __name__ == "__main__":
+    asyncio.run(main())

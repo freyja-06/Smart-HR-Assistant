@@ -1,7 +1,7 @@
 from langgraph.graph import START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from backend.agents.coordinator import manager_agent, response_agent
-from backend.state.graph_state import GraphState, workflow
+from backend.state.graph_state import GraphState, workflow, print_state
 from backend.graphs.rag_subgraph import rag_workflow
 from backend.retrieval.rag_backend import build_history_store, update_history_store
 import backend.constant_variables as const
@@ -14,34 +14,39 @@ rag_app = rag_workflow.compile()
 
 
 def manager_node(state: GraphState):
-    print("\n-> Manager agent đang phân chia công việc!")
+    print(f"\n[DEBUG] ================= MANAGER NODE =================")
+    print(f"[DEBUG] User Input: {state['user_input']}")
+    print("[DEBUG] -> Manager agent đang phân tích và phân chia công việc...")
     response = manager_agent.invoke({"user_input": state["user_input"]})
+    print(f"[DEBUG] Kế hoạch (Plan) được tạo:\n{response}")
     return {"plan": response}
 
 def router_node(state: GraphState):
+    print(f"\n[DEBUG] ================= ROUTER NODE =================")
     plan = state.get("plan")
     completed = state.get("completed_tasks", [])
     failed = state.get("failed_tasks", [])
 
     if not plan or not plan.tasks:
+        print("[DEBUG] Không có plan hoặc tasks trống -> Chuyển sang định tuyến GENERAL_CHAT")
         return {
             "current_route": "GENERAL_CHAT",
             "current_task_id": None
         }
 
-    # tìm task tiếp theo hợp lệ
     for task in sorted(plan.tasks, key=lambda t: t.task_id):
         task_id = task.task_id
-
         if task_id in completed or task_id in failed:
             continue
 
         if all(dep in completed for dep in task.dependencies):
+            print(f"[DEBUG] Chọn Task tiếp theo -> ID: {task_id}, Route: {task.route}")
             return {
                 "current_route": task.route,
                 "current_task_id": task_id
             }
 
+    print("[DEBUG] Đã hoàn thành tất cả Task -> Chuyển sang định tuyến GENERAL_CHAT")
     return {
         "current_route": "GENERAL_CHAT",
         "current_task_id": None
@@ -51,6 +56,8 @@ def router_node(state: GraphState):
 def route_condition(state: GraphState) -> str:
     """Hàm này đọc state và trả về TÊN NODE tiếp theo cần chạy"""
     route = state.get("current_route")
+
+    print(f"\n[DEBUG] --- ROUTE CONDITION: Điều hướng tới node '{route}' ---")
     
     if route == "RAG_SEARCH":
         return "rag_search_node"
@@ -66,15 +73,28 @@ def route_condition(state: GraphState) -> str:
 
 
 def general_chat_node(state: GraphState):
-    print("Agent đang trả về kết quả cuói cùng!")
+    print(f"\n[DEBUG] ================= GENERAL CHAT NODE =================")
+    print("[DEBUG] Đang chạy Response Agent để tổng hợp câu trả lời cuối cùng...")
     response = response_agent.invoke(state)
+    print(f"\n[DEBUG] >>> FINAL RESPONSE TRẢ VỀ CHO USER <<<\n{response}\n")
+
+
+    print_state(state, node_name="ROUTER NODE")
+
     return {"final_answer": response}
+
+
 
 async def rag_search_node(state: GraphState):
     task_id = state["current_task_id"]
     
+    print(f"\n[DEBUG] ================= RAG SEARCH NODE (Task {task_id}) =================")
+    print("[DEBUG] -> Bắt đầu gọi RAG Subgraph...")
+
     # 1. Gọi Subgraph bất đồng bộ (vì subgraph chứa async nodes)
     result = await rag_app.ainvoke(state)
+
+    print("[DEBUG] -> RAG Subgraph đã chạy xong.")
 
     # 2. Xử lý logic Thất bại (nếu subgraph có lỗi)
     if result.get("module_outputs", {}).get("error"):
@@ -86,6 +106,7 @@ async def rag_search_node(state: GraphState):
     # 3. Lấy dữ liệu trả về từ Subgraph
     unique_cv_docs = result.get("cv_documents", [])
     company_docs = result.get("company_documents", [])
+    print(f"[DEBUG] Nhận được từ Subgraph: {len(unique_cv_docs)} CV Docs, {len(company_docs)} Company Docs")
 
     # 4. Xử lý Business Logic: Cập nhật History Store
     old_history = state.get("history_cv_store")
@@ -109,6 +130,8 @@ async def rag_search_node(state: GraphState):
                 model_name="nomic-embed-text",
             )
         )
+    
+    print(f"[DEBUG] Đánh dấu Task {task_id} hoàn thành.")
 
     # 5. Xử lý Business Logic: Đánh dấu hoàn thành Task
     return {
@@ -173,6 +196,6 @@ workflow.add_edge("general_chat_node", END)
 
 app = workflow.compile(checkpointer= memory)
 
-def run(state: GraphState, config: dict):
-    result = app.invoke(state, config=config)
+async def run(state: GraphState, config: dict):
+    result = await app.ainvoke(state, config=config)
     return result

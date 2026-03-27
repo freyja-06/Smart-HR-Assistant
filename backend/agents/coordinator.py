@@ -144,6 +144,7 @@ def format_docs(docs: List[Document]) -> str:
 
 @chain
 def get_final_prompt(state: dict) -> str:
+    print("\n[DEBUG] --- ĐANG DỰNG FINAL PROMPT CHO RESPONSE AGENT ---")
     user_input = state.get("user_input", "")
 
     # Lấy đúng tên Key đã định nghĩa trong GraphState
@@ -226,6 +227,10 @@ def get_final_prompt(state: dict) -> str:
     )
 
     final_prompt = "\n\n".join(context_blocks)
+
+    print(f"[DEBUG] Chiều dài Final Prompt: {len(final_prompt)} ký tự.")
+    print(f"[DEBUG] Khối dữ liệu gom được gồm: {[b.splitlines()[0] for b in context_blocks]}")
+
     return {"final_prompt": final_prompt}
 
 

@@ -67,6 +67,24 @@ company_docs = load_langdocs(
 company_embeddings = load_embeddings(str(const.COMPANY_EMBEDDING_SAVE_DIR))
 cv_embeddings = load_embeddings(str(const.CV_EMBEDDING_SAVE_DIR))
 
+
+# =====================================================================
+#  Debug Logic: Kiểm tra rỗng
+# =====================================================================
+print("\n[DEBUG-DATABASE] ================= KIỂM TRA DỮ LIỆU DATABASE =================")
+print(f"[DEBUG-DATABASE] cv_store: {'OK' if cv_store else 'LỖI (None)'}")
+print(f"[DEBUG-DATABASE] company_docs_store: {'OK' if company_docs_store else 'LỖI (None)'}")
+
+print(f"[DEBUG-DATABASE] cv_bm25: {'OK' if cv_bm25 else 'LỖI (None)'} | cv_corpus: {len(cv_corpus) if cv_corpus else 0} bản ghi")
+print(f"[DEBUG-DATABASE] company_docs_bm25: {'OK' if company_docs_bm25 else 'LỖI (None)'} | company_docs_corpus: {len(company_docs_corpus) if company_docs_corpus else 0} bản ghi")
+
+print(f"[DEBUG-DATABASE] cv_docs: {len(cv_docs) if cv_docs else 0} documents")
+print(f"[DEBUG-DATABASE] company_docs: {len(company_docs) if company_docs else 0} documents")
+
+print(f"[DEBUG-DATABASE] cv_embeddings: {len(cv_embeddings) if cv_embeddings is not None else 0} vectors")
+print(f"[DEBUG-DATABASE] company_embeddings: {len(company_embeddings) if company_embeddings is not None else 0} vectors")
+print("[DEBUG-DATABASE] =============================================================\n")
+
 # =====================================================================
 #  Public API
 # =====================================================================

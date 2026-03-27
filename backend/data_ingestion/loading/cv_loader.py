@@ -28,24 +28,28 @@ class CVLoader(BaseLoader):
     def __init__(self, max_workers: int = 4):
         self._max_workers = max_workers
 
-    # ─── Template Method implementations ─────────────────────
+    # ───────── Template Method implementations ─────────────────────
 
     def _load_raw(self, directory_path: str) -> Tuple[List[CandidateProfile], List[str]] | None:
         """Load tất cả PDF CV, extract thông tin bằng LLM song song."""
+
         profiles, file_paths = self.__batch_extract_profiles(directory_path)
+
         if not profiles:
             return None
+        
         return profiles, file_paths
 
     def _transform(self, raw_data) -> List[Document]:
         """Chuyển danh sách CandidateProfile → LangChain Documents."""
         profiles, file_paths = raw_data
+
         return [
             self.__profile_to_document(profile, path)
             for profile, path in zip(profiles, file_paths)
         ]
 
-    # ─── Private methods (logic riêng của CV) ────────────────
+    # ───────── Private methods (logic riêng của CV) ────────────────
 
     def __batch_extract_profiles(
         self, directory_path: str

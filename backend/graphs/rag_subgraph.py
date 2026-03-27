@@ -28,22 +28,25 @@ def get_prompt_for_retrieve(task: Task):
     """
 
 def optimize_query_node(state: GraphState):
+    print(f"\n  [DEBUG-SUBGRAPH] --- OPTIMIZE QUERY NODE ---")
     task_id = state["current_task_id"]
     task = next(t for t in state["plan"].tasks if t.task_id == task_id)
 
-    print(f"Đang chạy task {task_id}: {task.instruction}")
-
+    print(f"  [DEBUG-SUBGRAPH] Lệnh cần tối ưu: {task.instruction}")
     search_queries = sub_query_agent.invoke(get_prompt_for_retrieve(task))
+    print(f"  [DEBUG-SUBGRAPH] Đã phân tách thành các Sub-queries:\n{search_queries}")
 
     return {"search_queries":  search_queries}
 
 async def parallel_retrieve_node(state: GraphState):
+    print(f"\n  [DEBUG-SUBGRAPH] --- PARALLEL RETRIEVE NODE ---")
     try:
         search_queries = state.get("search_queries").queries
         history_store = state.get("history_cv_store")
         
         retrieve_tasks = {}
         for i, query in enumerate(search_queries, 1):
+            print(f"  [DEBUG-SUBGRAPH] Chuẩn bị task retrieve: {query.sub_query} (Nguồn: {query.data_source})")
             retrieve_tasks[f"{i}. {query.data_source}"] = asyn_general_retrieve(
                 subquery=query.sub_query,
                 db_type=query.data_source,
@@ -51,7 +54,7 @@ async def parallel_retrieve_node(state: GraphState):
                 history_store=history_store,
                 k=query.k  # Lúc này query.k có thể mang giá trị int hoặc None
             )
-
+        print("  [DEBUG-SUBGRAPH] Đang đợi kết quả từ các task song song...")
         # Await trực tiếp gather
         results = await asyncio.gather(*retrieve_tasks.values())
         results_dict = dict(zip(retrieve_tasks.keys(), results))
@@ -60,6 +63,7 @@ async def parallel_retrieve_node(state: GraphState):
         cv_docs = []
         company_docs = []
         for key, docs in results_dict.items():
+            print(f"  [DEBUG-SUBGRAPH] Task {key} trả về {len(docs)} tài liệu.")
             if "CV_DATABASE" in key or "HISTORY_CV_DATABASE" in key:
                 cv_docs.extend(docs)
             else:
@@ -74,6 +78,9 @@ async def parallel_retrieve_node(state: GraphState):
                 seen.add(content)
                 unique_cv_docs.append(doc)
 
+        
+        print(f"  [DEBUG-SUBGRAPH] Lọc trùng CV: từ {len(cv_docs)} -> {len(unique_cv_docs)} docs")
+
         # CHỈ TRẢ VỀ DỮ LIỆU ĐÃ RETRIEVE
         return {
             "cv_documents": unique_cv_docs,
@@ -82,6 +89,7 @@ async def parallel_retrieve_node(state: GraphState):
 
     except Exception as e:
         # Chỉ trả về error, để parent graph quyết định đánh dấu fail task
+        print(f"  [DEBUG-SUBGRAPH] LỖI RETRIEVE: {str(e)}")
         return {
             "module_outputs": {
                 "error": str(e)
@@ -89,17 +97,22 @@ async def parallel_retrieve_node(state: GraphState):
         }
     
 async def context_compressor_node(state: GraphState):
+    print(f"\n  [DEBUG-SUBGRAPH] --- CONTEXT COMPRESSOR NODE ---")
     query = state.get("user_input", "")
     
     # Gộp tất cả tài liệu truy xuất được để nén ngữ cảnh
     all_docs = state.get("company_documents") or []
     
     if not all_docs:
+        print("  [DEBUG-SUBGRAPH] Không có Company Docs để nén.")
         return {"company_compressed_context": ""}
+    
+    print(f"  [DEBUG-SUBGRAPH] Bắt đầu nén {len(all_docs)} Company Docs bằng Map-Reduce...")
     compressed_ctx = await context_compressor_agent(
         query=query, 
         company_docs=all_docs
     )
+    print(f"  [DEBUG-SUBGRAPH] Nén hoàn tất. Độ dài context thu được: {len(compressed_ctx)} chars.")
     
     return {"company_compressed_context": compressed_ctx}
 

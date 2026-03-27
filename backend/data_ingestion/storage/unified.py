@@ -35,6 +35,9 @@ def save_all(
 
     Returns:
         (vectorstore, doc_embeddings)
+
+
+    Cấu trúc lưu file này chưa được tối ưu!
     """
     # 1. Lưu LangDocs
     save_langdocs(docs, langdocs_dir, langdocs_var_name)

@@ -244,6 +244,7 @@ def company_docs_retrieve(
     """
     Truy vấn thông tin tài liệu của công ty
     """
+    print(f"    [DEBUG-BACKEND] company_docs_retrieve -> Bắt đầu lấy dữ liệu Company Docs")
 
     # 1. Fusion retrieval
     top_docs, top_embeddings = fusion_retrieval(
@@ -298,6 +299,8 @@ def company_docs_retrieve(
 
     selected_docs = [top_docs[i] for i in selected_idx]
 
+    print(f"    [DEBUG-BACKEND] company_docs_retrieve -> Hoàn thành. Trả về {len(selected_docs)} tài liệu.")
+
     return selected_docs
 
 def retrieve_from_history(history_store, query, embedding_model, top_n: Optional[int] = None):
@@ -335,7 +338,7 @@ def cv_retrieve(
     - CV_DATABASE → full pipeline (fusion + rerank)
     - HISTORY_CV_DATABASE → lightweight (rerank only)
     """
-
+    print(f"    [DEBUG-BACKEND] cv_retrieve -> Bắt đầu lấy dữ liệu từ {db_type}")
     reranked_docs = None
 
     # =========================
@@ -408,10 +411,12 @@ def cv_retrieve(
     else:
         raise ValueError(f"Unknown db_type: {db_type}")
 
+    print(f"    [DEBUG-BACKEND] cv_retrieve -> Hoàn thành. Trả về {len(reranked_docs if reranked_docs else [])} tài liệu đã rerank.")
     return reranked_docs
     
 
 def general_retrieve(subquery: str, db_type:str, alpha: float, history_store, k: Optional[int] = None):
+    print(f"    [DEBUG-BACKEND] Đang gọi general_retrieve: db_type={db_type}, k={k}, alpha={alpha}")
     if db_type == "CV_DATABASE" or db_type == "HISTORY_CV_DATABASE":
         return cv_retrieve(subquery=subquery, db_type=db_type, k=k, alpha=alpha, history_store=history_store)
     else:

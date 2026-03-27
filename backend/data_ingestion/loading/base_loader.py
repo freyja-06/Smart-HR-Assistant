@@ -31,6 +31,8 @@ class BaseLoader(ABC):
 
         Subclass KHÔNG nên override method này.
         """
+
+
         logger.info(f"[{self.__class__.__name__}] Bắt đầu load từ: {directory_path}")
 
         raw_data = self._load_raw(directory_path)
@@ -45,6 +47,8 @@ class BaseLoader(ABC):
             f"[{self.__class__.__name__}] Hoàn tất. "
             f"Tạo được {len(documents)} LangChain Documents."
         )
+
+
         return documents
 
     @abstractmethod
